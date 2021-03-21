@@ -1,6 +1,6 @@
 # Saga Toolkit
 
-An extension for [[redux-toolkit]][redux-toolkit] that allows sagas to resolve async thunk actions. 🌝
+An extension for [redux-toolkit][redux-toolkit] that allows sagas to resolve async thunk actions. 🌝
 
 ## install
 
@@ -31,11 +31,11 @@ const slice = createSlice({
       loading: true,
     }),
     [fetchThings.fulfilled]: ({ payload }) => ({
-	  result: payload,
+      result: payload,
       loading: false,
     }),
     [fetchThings.rejected]: ({ error }) => ({
-	  error,
+      error,
       loading: false,
     }),
   },
@@ -47,7 +47,7 @@ export default slice.reducer
 `sagas.js`
 ```js
 import { call } from 'redux-saga/effects'
-import { takeLatestAsync } from 'saga-toolkit'
+import { takeEveryAsync } from 'saga-toolkit'
 import API from 'hyper-super-api'
 import * as actions from './slice'
 
@@ -57,7 +57,7 @@ function* fetchThings() {
 }
 
 export default [
-  takeLatestAsync(actions.fetchThings.type, fetchThings),
+  takeEveryAsync(actions.fetchThings.type, fetchThings),
 ]
 ```
 
