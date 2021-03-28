@@ -43,7 +43,7 @@ const slice = createSlice({
       error,
       loading: false,
     }),
-    [fetchThings.fulfilled]: state => {
+    [appStart.fulfilled]: state => {
       state.started = true // immer allows this
       return state
     },
