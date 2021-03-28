@@ -16,28 +16,37 @@ import { createSagaAction  } from 'saga-toolkit'
 const name = 'example'
 
 const initialState = {
+  started: false,
   result: null,
   loading: false,
   error: null,
 }
 
+export const appStart = createSagaAction(`${name}/appStart`)
 export const fetchThings = createSagaAction(`${name}/fetchThings`)
 
 const slice = createSlice({
   name,
   initialState,
   extraReducers: {
-    [fetchThings.pending]: () => ({
+    [fetchThings.pending]: state => ({
+      ...state,
       loading: true,
     }),
-    [fetchThings.fulfilled]: ({ payload }) => ({
+    [fetchThings.fulfilled]: (state, { payload }) => ({
+      ...state,
       result: payload,
       loading: false,
     }),
-    [fetchThings.rejected]: ({ error }) => ({
+    [fetchThings.rejected]: (state, { payload }) => ({
+      ...state,
       error,
       loading: false,
     }),
+    [fetchThings.fulfilled]: state => {
+      state.started = true // immer allows this
+      return state
+    },
   },
 })
 
