@@ -1,6 +1,6 @@
 {
   "name": "saga-toolkit",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "An extension for redux-toolkit that allows sagas to resolve async thunk actions.",
   "main": "index.js",
   "scripts": {
