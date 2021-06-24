@@ -56,7 +56,7 @@ export default slice.reducer
 `sagas.js`
 ```js
 import { put, call } from 'redux-saga/effects'
-import { takeEveryAsync } from 'saga-toolkit'
+import { takeEveryAsync, putAsync } from 'saga-toolkit'
 import API from 'hyper-super-api'
 import * as actions from './slice'
 
