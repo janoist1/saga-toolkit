@@ -1,5 +1,5 @@
-import { createAsyncThunk } from '@reduxjs/toolkit'
-import { call, cancel, cancelled, fork, take } from 'redux-saga/effects'
+import { createAsyncThunk, unwrapResult } from '@reduxjs/toolkit'
+import { call, cancel, cancelled, fork, take, put } from 'redux-saga/effects'
 
 const createDeferredForSaga = () => {
   const deferred = {}
@@ -88,3 +88,7 @@ const takeAsync = (latest = false) => (patternOrChannel, saga, ...args) =>
 export const takeLatestAsync = takeAsync(true)
 
 export const takeEveryAsync = takeAsync(false)
+
+export function* putAsync(action) {
+  return unwrapResult(yield (yield put(action)))
+}

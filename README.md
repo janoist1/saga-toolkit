@@ -70,6 +70,16 @@ function* appStart() {
   return result
 }
 
+// or using putAsync
+function* appStart() {
+  try {
+    const payload = yield putAsync(fetchThings({ someArg: 'example' }))
+  } catch(error) {
+    // handle uncatched error from saga
+  }
+  return result
+}
+
 function* fetchThings({ meta }) {
   const { someArg } = meta
   const result = yield call(() => API.get('/things', { body: someArg }))
