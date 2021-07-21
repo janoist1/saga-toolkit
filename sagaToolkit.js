@@ -39,7 +39,7 @@ export const createSagaAction = type => {
   return action
 }
 
-const takeAsync = (latest = false) => (patternOrChannel, saga, ...args) =>
+const takeAsync = ({ latest = false, aggregate = false }) => (patternOrChannel, saga, ...args) =>
   fork(function* () {
     let task
 
@@ -64,30 +64,40 @@ const takeAsync = (latest = false) => (patternOrChannel, saga, ...args) =>
 
       const { resolve, reject } = deferred
 
-      if (latest && task && (yield cancelled(task))) {
+      if (latest && task && !(yield cancelled(task))) {
         yield cancel(task)
-        reject(Error('Saga cancelled'))
       }
 
-      function* wrap(fn, ...args) {
+      function* wrap(saga, ...args) {
         try {
-          const result = yield call(fn, ...args)
+          const result = yield call(saga, ...args)
 
           resolve(result)
         } catch (error) {
           reject(error)
+        } finally {
+          if (yield cancelled()) {
+            reject('Saga cancelled')
+          }
         }
-
-        delete requests[requestId]
       }
 
-      task = yield fork(wrap, saga, ...args.concat(action))
+      if (aggregate && task) {
+        requests[task.requestId].deferred.promise.then(resolve).catch(reject)
+      } else {
+        task = yield fork(wrap, saga, ...args.concat(action))
+        task.requestId = requestId
+      }
+
+      requests[task.requestId].deferred.promise.finally(() => { delete requests[requestId] })
     }
   })
 
-export const takeLatestAsync = takeAsync(true)
+export const takeEveryAsync = takeAsync({})
 
-export const takeEveryAsync = takeAsync(false)
+export const takeLatestAsync = takeAsync({ latest: true })
+
+export const takeAggregateAsync = takeAsync({ aggregate: true })
 
 export function* putAsync(action) {
   return unwrapResult(yield (yield put(action)))

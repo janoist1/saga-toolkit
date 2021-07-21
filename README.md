@@ -6,7 +6,9 @@ An extension for [redux-toolkit][redux-toolkit] that allows sagas to resolve asy
 
 `npm i saga-toolkit`
 
-## example
+## example - takeEveryAsync
+
+With `takeEveryAsync` each saga action dispatched runs their saga.
 
 `slice.js`
 ```js
@@ -108,6 +110,26 @@ const SomeComponent() {
     ...
   )
 }
+```
+
+## example2 - takeLatestAsync
+
+With `takeLatestAsync` the latter saga cancels the previous one in case that has not finished running. Action will be rejected with error message 'Saga cancelled'.
+
+```js
+export default [
+  takeLatestAsync(actions.fetchThings.type, fetchThings),
+]
+```
+
+## example3 - takeAggregateAsync
+
+With `takeAggregateAsync` the underlying promise that is created by the first action dispatch will be used and shared accross all subsequent actions. Each subsequent action will be resolved / rejected with the result of the first action. In other words, one single saga runs at a time that is passed to this effect.
+
+```js
+export default [
+  takeAggregateAsync(actions.fetchThings.type, fetchThings),
+]
 ```
 
 [redux-toolkit]: https://redux-toolkit.js.org/ "redux-toolkit"
