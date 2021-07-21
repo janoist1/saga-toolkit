@@ -4,7 +4,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.putAsync = putAsync;
-exports.takeEveryAsync = exports.takeLatestAsync = exports.createSagaAction = void 0;
+exports.takeAggregateAsync = exports.takeLatestAsync = exports.takeEveryAsync = exports.createSagaAction = void 0;
 
 var _toolkit = require("@reduxjs/toolkit");
 
@@ -64,8 +64,11 @@ var createSagaAction = function createSagaAction(type) {
 
 exports.createSagaAction = createSagaAction;
 
-var takeAsync = function takeAsync() {
-  var latest = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+var takeAsync = function takeAsync(_ref2) {
+  var _ref2$latest = _ref2.latest,
+      latest = _ref2$latest === void 0 ? false : _ref2$latest,
+      _ref2$aggregate = _ref2.aggregate,
+      aggregate = _ref2$aggregate === void 0 ? false : _ref2$aggregate;
   return function (patternOrChannel, saga) {
     for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
       args[_key - 2] = arguments[_key];
@@ -85,7 +88,7 @@ var takeAsync = function takeAsync() {
                   while (1) {
                     switch (_context2.prev = _context2.next) {
                       case 0:
-                        wrap = function _wrap(fn) {
+                        wrap = function _wrap(saga) {
                           var _len2,
                               args,
                               _key2,
@@ -103,7 +106,7 @@ var takeAsync = function takeAsync() {
                                   }
 
                                   _context.next = 4;
-                                  return _effects.call.apply(void 0, [fn].concat(args));
+                                  return _effects.call.apply(void 0, [saga].concat(args));
 
                                 case 4:
                                   result = _context.sent;
@@ -117,14 +120,27 @@ var takeAsync = function takeAsync() {
                                   reject(_context.t0);
 
                                 case 11:
-                                  delete requests[requestId];
+                                  _context.prev = 11;
+                                  _context.next = 14;
+                                  return (0, _effects.cancelled)();
 
-                                case 12:
+                                case 14:
+                                  if (!_context.sent) {
+                                    _context.next = 16;
+                                    break;
+                                  }
+
+                                  reject('Saga cancelled');
+
+                                case 16:
+                                  return _context.finish(11);
+
+                                case 17:
                                 case "end":
                                   return _context.stop();
                               }
                             }
-                          }, _marked, null, [[0, 8]]);
+                          }, _marked, null, [[0, 8, 11, 17]]);
                         };
 
                         _marked = /*#__PURE__*/regeneratorRuntime.mark(wrap);
@@ -179,11 +195,11 @@ var takeAsync = function takeAsync() {
                         return (0, _effects.cancelled)(task);
 
                       case 22:
-                        _context2.t0 = _context2.sent;
+                        _context2.t0 = !_context2.sent;
 
                       case 23:
                         if (!_context2.t0) {
-                          _context2.next = 27;
+                          _context2.next = 26;
                           break;
                         }
 
@@ -191,16 +207,29 @@ var takeAsync = function takeAsync() {
                         return (0, _effects.cancel)(task);
 
                       case 26:
-                        reject(Error('Saga cancelled'));
+                        if (!(aggregate && task)) {
+                          _context2.next = 30;
+                          break;
+                        }
 
-                      case 27:
-                        _context2.next = 29;
-                        return _effects.fork.apply(void 0, [wrap, saga].concat(_toConsumableArray(args.concat(action))));
-
-                      case 29:
-                        task = _context2.sent;
+                        requests[task.requestId].deferred.promise.then(resolve)["catch"](reject);
+                        _context2.next = 34;
+                        break;
 
                       case 30:
+                        _context2.next = 32;
+                        return _effects.fork.apply(void 0, [wrap, saga].concat(_toConsumableArray(args.concat(action))));
+
+                      case 32:
+                        task = _context2.sent;
+                        task.requestId = requestId;
+
+                      case 34:
+                        requests[task.requestId].deferred.promise["finally"](function () {
+                          delete requests[requestId];
+                        });
+
+                      case 35:
                       case "end":
                         return _context2.stop();
                     }
@@ -230,10 +259,16 @@ var takeAsync = function takeAsync() {
   };
 };
 
-var takeLatestAsync = takeAsync(true);
-exports.takeLatestAsync = takeLatestAsync;
-var takeEveryAsync = takeAsync(false);
+var takeEveryAsync = takeAsync({});
 exports.takeEveryAsync = takeEveryAsync;
+var takeLatestAsync = takeAsync({
+  latest: true
+});
+exports.takeLatestAsync = takeLatestAsync;
+var takeAggregateAsync = takeAsync({
+  aggregate: true
+});
+exports.takeAggregateAsync = takeAggregateAsync;
 
 function putAsync(action) {
   return regeneratorRuntime.wrap(function putAsync$(_context4) {
