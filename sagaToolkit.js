@@ -1,23 +1,11 @@
 import { createAsyncThunk, unwrapResult } from '@reduxjs/toolkit'
-import { call, cancel, cancelled, fork, take, put } from 'redux-saga/effects'
-
-const createDeferredForSaga = () => {
-  const deferred = {}
-
-  deferred.promise = new Promise((resolve, reject) => {
-    deferred.resolve = resolve
-    deferred.reject = error => {
-      error?.message === 'Saga cancelled' ? resolve() : reject(error)
-    }
-  })
-
-  return deferred
-}
+import { call, cancel, cancelled, fork, take, put } from '@redux-saga/core/effects'
+import createDeferred from '@redux-saga/deferred'
 
 const requests = {}
 
 const addRequest = requestId => {
-  const deferred = createDeferredForSaga()
+  const deferred = createDeferred()
 
   if (requests[requestId]) {
     requests[requestId].deferred = deferred
@@ -30,9 +18,7 @@ const addRequest = requestId => {
 }
 
 export const createSagaAction = type => {
-  const action = createAsyncThunk(type, (_, { requestId }) => {
-    return addRequest(requestId)
-  })
+  const action = createAsyncThunk(type, async (_, { requestId }) => addRequest(requestId))
 
   action.type = action.pending
 
@@ -87,10 +73,9 @@ const takeAsync = ({ latest = false, aggregate = false }) => (patternOrChannel, 
 
         requests[task.requestId].deferred.promise.finally(() => {
           delete requests[requestId]
-        })
+        }).catch(() => undefined)
       }
     }
-
 
     let processor
 
