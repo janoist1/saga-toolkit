@@ -1,8 +1,11 @@
 "use strict";
 
 exports.__esModule = true;
+exports.takeEveryAsync = takeEveryAsync;
+exports.takeLatestAsync = takeLatestAsync;
+exports.takeAggregateAsync = takeAggregateAsync;
 exports.putAsync = putAsync;
-exports.takeAggregateAsync = exports.takeLatestAsync = exports.takeEveryAsync = exports.createSagaAction = void 0;
+exports.createSagaAction = void 0;
 
 var _toolkit = require("@reduxjs/toolkit");
 
@@ -16,122 +19,139 @@ const requests = {};
 
 const addRequest = requestId => {
   const deferred = (0, _deferred.default)();
+  const request = {
+    requestId,
+    deferred
+  };
 
   if (requests[requestId]) {
     requests[requestId].deferred = deferred;
-    requests[requestId].onAdd(deferred);
+    requests[requestId].onAdd(request);
   } else {
-    requests[requestId] = {
-      deferred
-    };
+    requests[requestId] = request;
   }
 
   return deferred.promise;
 };
 
 const createSagaAction = type => {
-  const action = (0, _toolkit.createAsyncThunk)(type, async (_, {
+  const thunk = (0, _toolkit.createAsyncThunk)(type, (_, {
     requestId
   }) => addRequest(requestId));
-  action.type = action.pending;
-  return action;
+
+  function actionCreator(...args) {
+    const originalActionCreator = thunk(...args);
+    return (...args) => {
+      const promise = originalActionCreator(...args);
+      requests[promise.requestId].abort = promise.abort;
+      return promise;
+    };
+  }
+
+  actionCreator.pending = thunk.pending;
+  actionCreator.rejected = thunk.rejected;
+  actionCreator.fulfilled = thunk.fulfilled;
+  actionCreator.typePrefix = thunk.typePrefix;
+  actionCreator.type = thunk.pending;
+  return actionCreator;
 };
 
 exports.createSagaAction = createSagaAction;
 
-const takeAsync = ({
-  latest = false,
-  aggregate = false
-}) => (patternOrChannel, saga, ...args) => (0, _effects.fork)(function* () {
-  const queue = [];
+const cleanup = requestId => {
+  delete requests[requestId];
+};
 
-  function* processQueue() {
-    let task;
+function* getRequest(action) {
+  const {
+    requestId
+  } = action.meta;
+  const request = requests[requestId];
 
-    while (queue.length) {
-      const action = queue.shift();
-      const {
-        requestId
-      } = action.meta;
-      const request = requests[requestId];
-      let deferred;
+  if (!request) {
+    return yield new Promise(onAdd => {
+      requests[requestId] = {
+        onAdd
+      };
+    });
+  }
 
-      if (!request) {
-        deferred = yield new Promise(onAdd => {
-          requests[requestId] = {
-            onAdd
-          };
-        });
-      } else {
-        deferred = request.deferred;
-      }
+  return request;
+}
 
+const wrap = saga => function* (action, ...rest) {
+  const {
+    requestId
+  } = action.meta;
+  const request = yield getRequest(action);
+  const deferred = request.deferred;
+
+  try {
+    deferred.resolve(yield saga(action, ...rest));
+  } catch (error) {
+    deferred.reject(error);
+  } finally {
+    cleanup(requestId);
+  }
+};
+
+function takeEveryAsync(pattern, saga, ...args) {
+  return (0, _effects.takeEvery)(pattern, wrap(saga), ...args);
+}
+
+function takeLatestAsync(pattern, saga, ...args) {
+  let deferred;
+
+  function* wrapper(action, ...rest) {
+    if (deferred) {
+      const lastRequest = yield deferred.promise;
+      lastRequest.abort();
+    }
+
+    deferred = (0, _deferred.default)();
+    const request = yield getRequest(action);
+    deferred.resolve(request);
+    yield wrap(saga)(action, ...rest);
+    deferred = null;
+  }
+
+  return (0, _effects.takeEvery)(pattern, wrapper, ...args);
+}
+
+function takeAggregateAsync(pattern, saga, ...args) {
+  let deferred;
+
+  function* wrapper(action, ...rest) {
+    const {
+      requestId
+    } = action.meta;
+
+    if (deferred) {
+      const request = yield getRequest(action);
       const {
         resolve,
         reject
-      } = deferred;
-
-      if (latest && task && !(yield (0, _effects.cancelled)(task))) {
-        yield (0, _effects.cancel)(task);
-      }
-
-      function* wrap(saga, ...args) {
-        try {
-          resolve(yield (0, _effects.call)(saga, ...args));
-        } catch (error) {
-          reject(error);
-        } finally {
-          if (yield (0, _effects.cancelled)()) {
-            reject('Saga cancelled');
-          }
-        }
-      }
-
-      if (aggregate && task) {
-        requests[task.requestId].deferred.promise.then(resolve).catch(reject);
-      } else {
-        task = yield (0, _effects.fork)(wrap, saga, ...args.concat(action));
-        task.requestId = requestId;
-      }
-
-      requests[task.requestId].deferred.promise.finally(() => {
-        delete requests[requestId];
-      }).catch(() => undefined);
+      } = request.deferred;
+      const {
+        promise
+      } = yield deferred.promise;
+      promise.then(resolve, reject).finally(() => cleanup(requestId)).catch(() => {});
+    } else {
+      deferred = (0, _deferred.default)();
+      const request = yield getRequest(action);
+      const {
+        promise
+      } = request.deferred;
+      yield wrap(saga)(action, ...rest);
+      deferred.resolve({
+        promise
+      });
+      deferred = null;
     }
   }
 
-  let processor;
-
-  while (true) {
-    var _processor;
-
-    const action = yield (0, _effects.take)(patternOrChannel);
-    const {
-      requestId
-    } = action === null || action === void 0 ? void 0 : action.meta;
-
-    if (!requestId) {
-      throw Error('Non-saga action');
-    }
-
-    queue.push(action);
-
-    if (!((_processor = processor) !== null && _processor !== void 0 && _processor.isRunning())) {
-      processor = yield (0, _effects.fork)(processQueue);
-    }
-  }
-});
-
-const takeEveryAsync = takeAsync({});
-exports.takeEveryAsync = takeEveryAsync;
-const takeLatestAsync = takeAsync({
-  latest: true
-});
-exports.takeLatestAsync = takeLatestAsync;
-const takeAggregateAsync = takeAsync({
-  aggregate: true
-});
-exports.takeAggregateAsync = takeAggregateAsync;
+  return (0, _effects.takeEvery)(pattern, wrapper, ...args);
+}
 
 function* putAsync(action) {
   return (0, _toolkit.unwrapResult)(yield yield (0, _effects.put)(action));

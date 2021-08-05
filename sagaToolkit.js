@@ -1,106 +1,136 @@
 import { createAsyncThunk, unwrapResult } from '@reduxjs/toolkit'
-import { call, cancel, cancelled, fork, take, put } from '@redux-saga/core/effects'
+import { put, takeEvery } from '@redux-saga/core/effects'
 import createDeferred from '@redux-saga/deferred'
 
 const requests = {}
 
 const addRequest = requestId => {
   const deferred = createDeferred()
+  const request = {
+    requestId,
+    deferred,
+  }
 
   if (requests[requestId]) {
     requests[requestId].deferred = deferred
-    requests[requestId].onAdd(deferred)
+    requests[requestId].onAdd(request)
   } else {
-    requests[requestId] = { deferred }
+    requests[requestId] = request
   }
 
   return deferred.promise
 }
 
 export const createSagaAction = type => {
-  const action = createAsyncThunk(type, async (_, { requestId }) => addRequest(requestId))
+  const thunk = createAsyncThunk(type, (_, { requestId }) => addRequest(requestId))
 
-  action.type = action.pending
+  function actionCreator(...args) {
+    const originalActionCreator = thunk(...args)
 
-  return action
+    return (...args) => {
+      const promise = originalActionCreator(...args)
+      requests[promise.requestId].abort = promise.abort
+
+      return promise
+    }
+  }
+
+  actionCreator.pending = thunk.pending
+  actionCreator.rejected = thunk.rejected
+  actionCreator.fulfilled = thunk.fulfilled
+  actionCreator.typePrefix = thunk.typePrefix
+  actionCreator.type = thunk.pending
+
+  return actionCreator
 }
 
-const takeAsync = ({ latest = false, aggregate = false }) => (patternOrChannel, saga, ...args) =>
-  fork(function* () {
-    const queue = []
+const cleanup = requestId => {
+  delete requests[requestId]
+}
 
-    function* processQueue() {
-      let task
+function* getRequest(action) {
+  const { requestId } = action.meta
+  const request = requests[requestId]
 
-      while (queue.length) {
-        const action = queue.shift()
-        const { requestId } = action.meta
-        const request = requests[requestId]
-        let deferred
+  if (!request) {
+    return yield (new Promise(onAdd => {
+      requests[requestId] = { onAdd }
+    }))
+  }
 
-        if (!request) {
-          deferred = yield (new Promise(onAdd => {
-            requests[requestId] = { onAdd }
-          }))
-        } else {
-          deferred = request.deferred
-        }
+  return request
+}
 
-        const { resolve, reject } = deferred
+const wrap = saga => function* (action, ...rest) {
+  const { requestId } = action.meta
+  const request = yield getRequest(action)
+  const deferred = request.deferred
 
-        if (latest && task && !(yield cancelled(task))) {
-          yield cancel(task)
-        }
+  try {
+    deferred.resolve(yield saga(action, ...rest))
+  } catch (error) {
+    deferred.reject(error)
+  } finally {
+    cleanup(requestId)
+  }
+}
 
-        function* wrap(saga, ...args) {
-          try {
-            resolve(yield call(saga, ...args))
-          } catch (error) {
-            reject(error)
-          } finally {
-            if (yield cancelled()) {
-              reject('Saga cancelled')
-            }
-          }
-        }
+export function takeEveryAsync(pattern, saga, ...args) {
+  return takeEvery(pattern, wrap(saga), ...args)
+}
 
-        if (aggregate && task) {
-          requests[task.requestId].deferred.promise.then(resolve).catch(reject)
-        } else {
-          task = yield fork(wrap, saga, ...args.concat(action))
-          task.requestId = requestId
-        }
+export function takeLatestAsync(pattern, saga, ...args) {
+  let deferred
 
-        requests[task.requestId].deferred.promise.finally(() => {
-          delete requests[requestId]
-        }).catch(() => undefined)
-      }
+  function* wrapper(action, ...rest) {
+    if (deferred) {
+      const lastRequest = yield deferred.promise
+
+      lastRequest.abort()
     }
 
-    let processor
+    deferred = createDeferred()
+    const request = yield getRequest(action)
 
-    while (true) {
-      const action = yield take(patternOrChannel)
+    deferred.resolve(request)
 
-      const { requestId } = action?.meta
+    yield wrap(saga)(action, ...rest)
 
-      if (!requestId) {
-        throw Error('Non-saga action')
-      }
+    deferred = null
+  }
 
-      queue.push(action)
+  return takeEvery(pattern, wrapper, ...args)
+}
 
-      if (!processor?.isRunning()) {
-        processor = yield fork(processQueue)
-      }
+export function takeAggregateAsync(pattern, saga, ...args) {
+  let deferred
+
+  function* wrapper(action, ...rest) {
+    const { requestId } = action.meta
+
+    if (deferred) {
+      const request = yield getRequest(action)
+      const { resolve, reject } = request.deferred
+      const { promise } = yield deferred.promise
+
+      promise
+        .then(resolve, reject)
+        .finally(() => cleanup(requestId))
+        .catch(() => { })
+    } else {
+      deferred = createDeferred()
+      const request = yield getRequest(action)
+      const { promise } = request.deferred
+
+      yield wrap(saga)(action, ...rest)
+
+      deferred.resolve({ promise })
+      deferred = null
     }
-  })
+  }
 
-export const takeEveryAsync = takeAsync({})
-
-export const takeLatestAsync = takeAsync({ latest: true })
-
-export const takeAggregateAsync = takeAsync({ aggregate: true })
+  return takeEvery(pattern, wrapper, ...args)
+}
 
 export function* putAsync(action) {
   return unwrapResult(yield (yield put(action)))
