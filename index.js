@@ -19,7 +19,7 @@ const requests = {};
 
 const addRequest = requestId => {
   const deferred = (0, _deferred.default)();
-  const request = {
+  const request = { ...requests[requestId],
     requestId,
     deferred
   };
@@ -104,13 +104,15 @@ function takeLatestAsync(pattern, saga, ...args) {
 
   function* wrapper(action, ...rest) {
     if (deferred) {
-      const lastRequest = yield deferred.promise;
-      lastRequest.abort();
+      const lastRequestId = yield deferred.promise;
+      requests[lastRequestId].abort();
     }
 
     deferred = (0, _deferred.default)();
-    const request = yield getRequest(action);
-    deferred.resolve(request);
+    const {
+      requestId
+    } = yield getRequest(action);
+    deferred.resolve(requestId);
     yield wrap(saga)(action, ...rest);
     deferred = null;
   }

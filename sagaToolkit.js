@@ -7,6 +7,7 @@ const requests = {}
 const addRequest = requestId => {
   const deferred = createDeferred()
   const request = {
+    ...requests[requestId],
     requestId,
     deferred,
   }
@@ -84,15 +85,15 @@ export function takeLatestAsync(pattern, saga, ...args) {
 
   function* wrapper(action, ...rest) {
     if (deferred) {
-      const lastRequest = yield deferred.promise
+      const lastRequestId = yield deferred.promise
 
-      lastRequest.abort()
+      requests[lastRequestId].abort()
     }
 
     deferred = createDeferred()
-    const request = yield getRequest(action)
+    const { requestId } = yield getRequest(action)
 
-    deferred.resolve(request)
+    deferred.resolve(requestId)
 
     yield wrap(saga)(action, ...rest)
 
