@@ -87,7 +87,8 @@ const wrap = saga => function* (action, ...rest) {
   const deferred = request.deferred;
 
   try {
-    deferred.resolve(yield saga(action, ...rest));
+    const resultOrPromise = yield saga(action, ...rest);
+    deferred.resolve(yield resultOrPromise);
   } catch (error) {
     deferred.reject(error);
   } finally {
