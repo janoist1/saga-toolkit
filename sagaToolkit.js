@@ -50,7 +50,6 @@ const cleanup = requestId => {
 }
 
 function* getRequest(requestId) {
-  // const { requestId } = action.meta
   const request = requests[requestId]
 
   if (!request) {
@@ -70,7 +69,6 @@ const wrap = saga => function* (action, ...rest) {
   try {
     deferred.resolve(yield saga(action, ...rest))
   } catch (error) {
-    console.log(error)
     deferred.reject(error)
   } finally {
     cleanup(requestId)
