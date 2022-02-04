@@ -1,11 +1,13 @@
 "use strict";
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.createSagaAction = void 0;
+exports.putAsync = putAsync;
+exports.takeAggregateAsync = takeAggregateAsync;
 exports.takeEveryAsync = takeEveryAsync;
 exports.takeLatestAsync = takeLatestAsync;
-exports.takeAggregateAsync = takeAggregateAsync;
-exports.putAsync = putAsync;
-exports.createSagaAction = void 0;
 
 var _toolkit = require("@reduxjs/toolkit");
 
@@ -62,10 +64,8 @@ const cleanup = requestId => {
   delete requests[requestId];
 };
 
-function* getRequest(action) {
-  const {
-    requestId
-  } = action.meta;
+function* getRequest(requestId) {
+  // const { requestId } = action.meta
   const request = requests[requestId];
 
   if (!request) {
@@ -83,12 +83,13 @@ const wrap = saga => function* (action, ...rest) {
   const {
     requestId
   } = action.meta;
-  const request = yield getRequest(action);
+  const request = yield getRequest(requestId);
   const deferred = request.deferred;
 
   try {
     deferred.resolve(yield saga(action, ...rest));
   } catch (error) {
+    console.log(error);
     deferred.reject(error);
   } finally {
     cleanup(requestId);
@@ -100,24 +101,39 @@ function takeEveryAsync(pattern, saga, ...args) {
 }
 
 function takeLatestAsync(pattern, saga, ...args) {
+  const tasks = {};
   let deferred;
 
   function* wrapper(action, ...rest) {
     if (deferred) {
       const lastRequestId = yield deferred.promise;
-      requests[lastRequestId].abort();
+      const request = yield getRequest(lastRequestId);
+      request.abort();
+      const task = yield tasks[lastRequestId].promise;
+      yield (0, _effects.cancel)(task);
     }
 
     deferred = (0, _deferred.default)();
     const {
       requestId
-    } = yield getRequest(action);
+    } = yield getRequest(action.meta.requestId);
     deferred.resolve(requestId);
     yield wrap(saga)(action, ...rest);
     deferred = null;
   }
 
-  return (0, _effects.takeEvery)(pattern, wrapper, ...args);
+  const takeEvery = (patternOrChannel, saga, ...args) => (0, _effects.fork)(function* () {
+    while (true) {
+      const action = yield (0, _effects.take)(patternOrChannel);
+      const {
+        requestId
+      } = action.meta;
+      tasks[requestId] = (0, _deferred.default)();
+      tasks[requestId].resolve(yield (0, _effects.fork)(saga, ...args.concat(action)));
+    }
+  });
+
+  return takeEvery(pattern, wrapper, ...args);
 }
 
 function takeAggregateAsync(pattern, saga, ...args) {
@@ -129,7 +145,7 @@ function takeAggregateAsync(pattern, saga, ...args) {
     } = action.meta;
 
     if (deferred) {
-      const request = yield getRequest(action);
+      const request = yield getRequest(requestId);
       const {
         resolve,
         reject
@@ -140,7 +156,7 @@ function takeAggregateAsync(pattern, saga, ...args) {
       promise.then(resolve, reject).finally(() => cleanup(requestId)).catch(() => {});
     } else {
       deferred = (0, _deferred.default)();
-      const request = yield getRequest(action);
+      const request = yield getRequest(requestId);
       const {
         promise
       } = request.deferred;

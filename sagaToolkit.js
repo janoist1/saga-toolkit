@@ -1,5 +1,5 @@
 import { createAsyncThunk, unwrapResult } from '@reduxjs/toolkit'
-import { put, takeEvery } from '@redux-saga/core/effects'
+import { put, take, fork, takeEvery, cancel } from '@redux-saga/core/effects'
 import createDeferred from '@redux-saga/deferred'
 
 const requests = {}
@@ -49,8 +49,8 @@ const cleanup = requestId => {
   delete requests[requestId]
 }
 
-function* getRequest(action) {
-  const { requestId } = action.meta
+function* getRequest(requestId) {
+  // const { requestId } = action.meta
   const request = requests[requestId]
 
   if (!request) {
@@ -64,12 +64,13 @@ function* getRequest(action) {
 
 const wrap = saga => function* (action, ...rest) {
   const { requestId } = action.meta
-  const request = yield getRequest(action)
+  const request = yield getRequest(requestId)
   const deferred = request.deferred
 
   try {
     deferred.resolve(yield saga(action, ...rest))
   } catch (error) {
+    console.log(error)
     deferred.reject(error)
   } finally {
     cleanup(requestId)
@@ -81,17 +82,23 @@ export function takeEveryAsync(pattern, saga, ...args) {
 }
 
 export function takeLatestAsync(pattern, saga, ...args) {
+  const tasks = {}
   let deferred
 
   function* wrapper(action, ...rest) {
     if (deferred) {
       const lastRequestId = yield deferred.promise
+      const request = yield getRequest(lastRequestId)
 
-      requests[lastRequestId].abort()
+      request.abort()
+
+      const task = yield tasks[lastRequestId].promise
+
+      yield cancel(task)
     }
 
     deferred = createDeferred()
-    const { requestId } = yield getRequest(action)
+    const { requestId } = yield getRequest(action.meta.requestId)
 
     deferred.resolve(requestId)
 
@@ -99,6 +106,15 @@ export function takeLatestAsync(pattern, saga, ...args) {
 
     deferred = null
   }
+
+  const takeEvery = (patternOrChannel, saga, ...args) => fork(function* () {
+    while (true) {
+      const action = yield take(patternOrChannel)
+      const { requestId } = action.meta
+      tasks[requestId] = createDeferred()
+      tasks[requestId].resolve(yield fork(saga, ...args.concat(action)))
+    }
+  })
 
   return takeEvery(pattern, wrapper, ...args)
 }
@@ -110,7 +126,7 @@ export function takeAggregateAsync(pattern, saga, ...args) {
     const { requestId } = action.meta
 
     if (deferred) {
-      const request = yield getRequest(action)
+      const request = yield getRequest(requestId)
       const { resolve, reject } = request.deferred
       const { promise } = yield deferred.promise
 
@@ -120,7 +136,7 @@ export function takeAggregateAsync(pattern, saga, ...args) {
         .catch(() => { })
     } else {
       deferred = createDeferred()
-      const request = yield getRequest(action)
+      const request = yield getRequest(requestId)
       const { promise } = request.deferred
 
       yield wrap(saga)(action, ...rest)
