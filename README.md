@@ -40,7 +40,7 @@ const slice = createSlice({
       result: payload,
       loading: false,
     }),
-    [fetchThings.rejected]: (state, { payload }) => ({
+    [fetchThings.rejected]: (state, { error }) => ({
       ...state,
       error,
       loading: false,
