@@ -1,0 +1,10 @@
+{
+  "include": ["index.js"],
+  "compilerOptions": {
+    "lib": ["es2018", "DOM"],
+    "allowJs": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": true
+  }
+}
