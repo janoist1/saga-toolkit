@@ -1,72 +1,75 @@
-// generated with chatGPT
-
-import { ThunkAction } from '@reduxjs/toolkit'
+import { createAsyncThunk, ThunkAction, SerializedError, Action } from '@reduxjs/toolkit';
+import { ForkEffect, PutEffect, TakeEffect, Saga, CallEffect, ForkEffectDescriptor } from '@redux-saga/core/effects';
+import { Deferred } from '@redux-saga/deferred';
 
 declare module 'saga-toolkit' {
-  import { Dispatch } from 'redux'
-  import { SagaIterator } from 'redux-saga'
-  import { AsyncThunkFulfilledActionCreator, AsyncThunkConfig } from '@reduxjs/toolkit/src/createAsyncThunk'
-
-  type AsyncSagaPayloadCreator<Returned, ThunkArg = void> = (
-    arg: ThunkArg,
-    requestId: string
-  ) => Promise<Returned>
-
-  type AsyncSagaActionCreator<
-    Returned,
-    ThunkArg,
-    ThunkApiConfig extends AsyncThunkConfig = {}
-  > = (
-    arg: ThunkArg
-  ) => ThunkAction<
-    Promise<Returned>,
-    ReturnType<Dispatch>,
+  type SagaAction<Arg, ReturnType> = ThunkAction<
+    Promise<ReturnType<Arg>>,
     unknown,
-    ReturnType<
-      AsyncThunkFulfilledActionCreator<Returned, ThunkArg, ThunkApiConfig>
-    >
-  >
+    { requestId: string },
+    Action<string>
+  > & {
+    type: string;
+    requestId: string;
+    abort: () => void;
+    then: (onfulfilled?: (value: SagaActionResult<Arg, ReturnType>) => void) => Promise<SagaActionResult<Arg, ReturnType>>;
+  };
 
-  export interface AsyncSagaThunkConfig {
-    requestId: string
-    signal: AbortSignal
-    abort: (reason?: string) => void
+  interface IRequest {
+    requestId: string;
+    deferred: Deferred<any>;
+    onAdd?: (request: IRequest) => void;
+    abort?: () => void;
   }
 
-  export function createSagaAction<Returned, ThunkArg = void>(
+  export type SagaActionResult<Arg, ReturnType> = {
+    payload: ReturnType;
+    meta: {
+      requestId: string;
+      arg: Arg;
+    };
+    error?: SerializedError;
+  }
+
+  export function createSagaAction<PayloadType, ReturnType = void>(
     type: string
-  ): AsyncSagaActionCreator<Returned, ThunkArg> & {
+  ): {  
+    (payload: PayloadType): SagaAction<PayloadType, ReturnType>;
     pending: string;
-    fulfilled: string;
     rejected: string;
+    fulfilled: string;
     typePrefix: string;
     type: string;
+  };
+
+  export function* getRequest(requestId: string): Generator<CallEffect, IRequest, any>;
+
+  export function takeEveryAsync<ActionPattern extends string>(
+    pattern: ActionPattern,
+    saga: Saga<[], void>,
+    ...args: any[]
+  ): ForkEffect<void>;
+
+  export function takeLatestAsync<ActionPattern extends string>(
+    pattern: ActionPattern,
+    saga: Saga<[], void>,
+    ...args: any[]
+  ): ForkEffect<void>;
+
+  export function takeAggregateAsync<ActionPattern extends string>(
+    pattern: ActionPattern,
+    saga: Saga<[], void>,
+    ...args: any[]
+  ): ForkEffect<void>;
+
+  export function* putAsync<T>(
+    action: SagaAction<T>
+  ): Generator<PutEffect<SagaAction<T>>, any, any>;
+
+  export type SagaActionFromCreator<Creator extends (...args: any) => any> = SagaActionResult<
+    Parameters<Creator>[0],
+    void
+  > & {
+    action: string
   }
-
-  type SagaFunction<Args extends any[]> = (...args: Args) => SagaIterator;
-
-  export function takeEveryAsync<ActionPattern>(
-    pattern: ActionPattern,
-    saga: SagaFunction<[...args: any[]]>,
-    ...args: any[]
-  ): void;
-
-  export function takeLatestAsync<ActionPattern>(
-    pattern: ActionPattern,
-    saga: SagaFunction<[...args: any[]]>,
-    ...args: any[]
-  ): void;
-
-  export function takeAggregateAsync<ActionPattern>(
-    pattern: ActionPattern,
-    saga: SagaFunction<[...args: any[]]>,
-    ...args: any[]
-  ): void;
-
-  export function putAsync<T>(action: T): T;
-
-  // export function takeEveryAsync(pattern: any, saga: any, ...args: any[]): any
-  // export function takeLatestAsync(pattern: any, saga: any, ...args: any[]): any
-  // export function takeAggregateAsync(pattern: any, saga: any, ...args: any[]): any
-  // export function putAsync(action: any): any
 }
