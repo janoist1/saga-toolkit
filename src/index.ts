@@ -152,9 +152,9 @@ export function takeLatestAsync(pattern: ActionPattern | Channel<any>, saga: Sag
         deferred = null
     }
 
-    const customTakeEvery = (patternOrChannel: ActionPattern | Channel<any>, saga: any, ...args: any[]) => fork(function* (): Generator<any, void, any> {
+    const customTakeEvery = (patternOrChannel: ActionPattern | Channel<any>, saga: SagaWorker, ...args: any[]) => fork(function* (): Generator<any, void, any> {
         while (true) {
-            const action: any = yield take(patternOrChannel)
+            const action = yield take(patternOrChannel as any)
             const { requestId } = action.meta
             tasks[requestId] = createDeferred()
             const task: Task = yield fork(saga, ...args.concat(action))
