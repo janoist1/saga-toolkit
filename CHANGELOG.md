@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.2.6] - 2026-01-17
+### Fixed
+- Updated `peerDependencies` to support **Redux Toolkit 2.0** (`^1.9.5 || ^2.0.0`).
+
 ## [2.2.5] - 2026-01-17
 ### Added
 - New effect: `takeAggregateAsync` for request de-duplication (multiple identical actions share the same promise).
