@@ -16,6 +16,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest",
+    "lint": "eslint src/index.ts",
     "prepublishOnly": "npm run build"
   },
   "repository": {

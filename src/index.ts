@@ -3,10 +3,13 @@ import createDeferred from '@redux-saga/deferred'
 import { createAsyncThunk, unwrapResult } from '@reduxjs/toolkit'
 import type { AsyncThunk } from '@reduxjs/toolkit'
 import { put, take, fork, takeEvery, cancel } from 'redux-saga/effects'
+import type { PutEffect } from 'redux-saga/effects'
 import type { Task } from 'redux-saga'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface Deferred<T = any> {
     resolve: (value: T) => void
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     reject: (error: any) => void
     promise: Promise<T>
 }
@@ -75,6 +78,7 @@ const cleanup = (requestId: string) => {
     delete requests[requestId]
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function* getRequest(requestId: string): Generator<any, Request, any> {
     const request = requests[requestId]
 
@@ -91,7 +95,7 @@ function* getRequest(requestId: string): Generator<any, Request, any> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const wrap = (saga: (...args: any[]) => any) => function* (action: any, ...rest: any[]) {
+const wrap = (saga: (...args: any[]) => any) => function* (action: any, ...rest: any[]): Generator<any, void, any> {
     const { requestId } = action.meta
     const request: Request = yield getRequest(requestId)
 
@@ -121,7 +125,7 @@ export function takeLatestAsync(pattern: any, saga: (...args: any[]) => any, ...
     let deferred: Deferred | null
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    function* wrapper(action: any, ...rest: any[]) {
+    function* wrapper(action: any, ...rest: any[]): Generator<any, void, any> {
         if (deferred) {
             const lastRequestId: string = yield deferred.promise
             const request: Request = yield getRequest(lastRequestId)
@@ -148,7 +152,7 @@ export function takeLatestAsync(pattern: any, saga: (...args: any[]) => any, ...
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const customTakeEvery = (patternOrChannel: any, saga: any, ...args: any[]) => fork(function* () {
+    const customTakeEvery = (patternOrChannel: any, saga: any, ...args: any[]) => fork(function* (): Generator<any, void, any> {
         while (true) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const action: any = yield take(patternOrChannel)
@@ -168,7 +172,7 @@ export function takeAggregateAsync(pattern: any, saga: (...args: any[]) => any, 
     let deferred: Deferred | null
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    function* wrapper(action: any, ...rest: any[]) {
+    function* wrapper(action: any, ...rest: any[]): Generator<any, void, any> {
         const { requestId } = action.meta
 
         if (deferred) {
@@ -203,7 +207,7 @@ export function takeAggregateAsync(pattern: any, saga: (...args: any[]) => any, 
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function* putAsync(action: any) {
+export function* putAsync(action: any): Generator<PutEffect | Promise<any>, any, any> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return unwrapResult(yield (yield put(action)) as any)
 }
