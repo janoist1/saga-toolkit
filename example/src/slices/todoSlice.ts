@@ -28,6 +28,8 @@ export const addTodo = createSagaAction<Todo, { text: string; simulateError: boo
 // Action to search todos (demonstrates takeLatestAsync and cancellation)
 export const searchTodos = createSagaAction<Todo[], string>(`${name}/searchTodos`)
 
+export const refreshTodos = createSagaAction<Todo[], void>(`${name}/refreshTodos`)
+
 // Action to clear completed (demonstrates standard action)
 export const clearCompleted = createSagaAction<void, void>(`${name}/clearCompleted`)
 
@@ -53,18 +55,18 @@ const todoSlice = createSlice({
             state.loading = false
             state.todos.push(payload)
         })
-        builder.addCase(addTodo.rejected, (state, { error }) => {
+        builder.addCase(addTodo.rejected, (state, action) => {
             state.loading = false
-            state.error = error.message || 'Failed to add todo'
+            state.error = action.error.message || 'Something went wrong'
         })
 
         // --- searchTodos ---
         builder.addCase(searchTodos.pending, (state) => {
             state.loading = true
         })
-        builder.addCase(searchTodos.fulfilled, (state, { payload }) => {
+        builder.addCase(searchTodos.fulfilled, (state, action) => {
             state.loading = false
-            state.todos = payload
+            state.todos = action.payload
         })
         // Note: We might ignore rejection for search if it was cancelled
         builder.addCase(searchTodos.rejected, (state, { error }) => {

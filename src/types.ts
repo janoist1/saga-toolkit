@@ -11,8 +11,12 @@ export interface Deferred<T = unknown> {
 export interface Request {
     requestId?: string
     deferred?: Deferred
-    onAdd?: (request: Request) => void
     abort?: () => void
+    task?: any // Using any to avoid circular dependency with Task from redux-saga
+    onAdd?: (request: Request) => void
+    handled?: boolean
 }
 
 export type SagaAction<Returned, ThunkArg = void> = AsyncThunk<Returned, ThunkArg, object>
+
+export type SagaActionFromCreator<T extends (...args: any[]) => any> = ReturnType<ReturnType<T>['pending']>

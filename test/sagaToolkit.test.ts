@@ -1,10 +1,15 @@
 import { configureStore, createReducer } from '@reduxjs/toolkit'
 import createSagaMiddleware from 'redux-saga'
-import { delay } from 'redux-saga/effects'
-import { describe, it, expect } from 'vitest'
+import { delay, spawn } from 'redux-saga/effects'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createSagaAction, takeEveryAsync, takeLatestAsync, putAsync, takeAggregateAsync } from '../src/index'
+import { _getInternalState, _clearInternalState } from '../src/utils'
 
 describe('saga-toolkit', () => {
+    beforeEach(() => {
+        _clearInternalState()
+    })
+
     const createStore = (rootSaga: () => Generator) => {
         const sagaMiddleware = createSagaMiddleware()
         const store = configureStore({
@@ -122,5 +127,55 @@ describe('saga-toolkit', () => {
 
         expect(results[0]).toBe('Result 1')
         expect(results[1]).toBe('Result 1')
+    })
+
+    describe('Memory Leaks', () => {
+        beforeEach(() => {
+            vi.useFakeTimers()
+        })
+
+        afterEach(() => {
+            vi.useRealTimers()
+        })
+
+        it('takeLatestAsync should not leak tasks or requests', async () => {
+            const action = createSagaAction('test/leak/latest')
+            function* saga() {
+                yield delay(100)
+                return 'done'
+            }
+            function* rootSaga() {
+                yield takeLatestAsync(action.pending.type, saga)
+            }
+            const store = createStore(rootSaga)
+
+            // Dispatch many actions
+            for (let i = 0; i < 100; i++) {
+                store.dispatch(action())
+                // Advance timers and allow microtasks to run
+                await vi.advanceTimersByTimeAsync(10)
+            }
+
+            // Internal state should only track ONE active request/task
+            expect(_getInternalState().size).toBe(1)
+
+            // After delay, should be 0
+            await vi.advanceTimersByTimeAsync(200)
+            expect(_getInternalState().size).toBe(0)
+        })
+
+        it('unhandled actions should auto-cleanup after 30s', async () => {
+            const action = createSagaAction('test/leak/unhandled')
+            const store = configureStore({
+                reducer: createReducer({}, () => { }),
+            })
+
+            store.dispatch(action())
+            expect(_getInternalState().size).toBe(1)
+
+            // Advance 31 seconds
+            vi.advanceTimersByTime(31000)
+            expect(_getInternalState().size).toBe(0)
+        })
     })
 })

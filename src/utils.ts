@@ -9,6 +9,7 @@ export const addRequest = (requestId: string) => {
         ...requests[requestId],
         requestId,
         deferred,
+        handled: false
     }
 
     if (requests[requestId]) {
@@ -20,11 +21,25 @@ export const addRequest = (requestId: string) => {
         requests[requestId] = request
     }
 
+    // Auto-cleanup if not picked up by a saga within 30 seconds
+    setTimeout(() => {
+        if (requests[requestId] && !requests[requestId].handled) {
+            delete requests[requestId]
+        }
+    }, 30000)
+
     return deferred.promise
 }
 
 export const cleanup = (requestId: string) => {
     delete requests[requestId]
+}
+
+/** @internal */
+export const _clearInternalState = () => {
+    for (const key in requests) {
+        delete requests[key]
+    }
 }
 
 export const setRequestAbort = (requestId: string, abort: () => void) => {
@@ -36,10 +51,15 @@ export const setRequestAbort = (requestId: string, abort: () => void) => {
 export function* getRequest(requestId: string): Generator<unknown, Request, unknown> {
     const request = requests[requestId]
 
+    if (request) {
+        request.handled = true
+    }
+
     if (!request) {
         const result = yield (new Promise(onAdd => {
             requests[requestId] = {
-                onAdd: (req: Request) => onAdd(req)
+                onAdd: (req: Request) => onAdd(req),
+                handled: true
             }
         }))
         return result as Request
@@ -75,3 +95,9 @@ export const wrap = (saga: SagaWorker) => function* (action: unknown, ...rest: u
         cleanup(requestId)
     }
 }
+
+/** @internal */
+export const _getInternalState = () => ({
+    requests,
+    size: Object.keys(requests).length
+})

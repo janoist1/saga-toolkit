@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
+import { bindActionCreators } from 'redux'
 import { unwrapResult } from '@reduxjs/toolkit'
 import { useAppDispatch, useAppSelector } from './hooks'
-import { addTodo, searchTodos, initApp } from './slices/todoSlice'
+import { addTodo, searchTodos, initApp, refreshTodos } from './slices/todoSlice'
 import './App.css'
 
 function App() {
@@ -12,19 +13,30 @@ function App() {
     const [simulateError, setSimulateError] = useState(false)
     const [localSearch, setLocalSearch] = useState('')
 
+    // --- PRO TIP: Using bindActionCreators ---
+    // This makes the component code cleaner as you don't need to call dispatch manually everywhere.
+    const actions = useMemo(() => bindActionCreators({
+        addTodo,
+        searchTodos,
+        initApp,
+        refreshTodos
+    }, dispatch), [dispatch])
+
     // Demonstration 1: putAsync usage (App Start)
     useEffect(() => {
         // This action waits for searchTodos inside the saga!
         const init = async () => {
             try {
-                await dispatch(initApp()).unwrap()
+                // Dispatching via bound action creator
+                // @ts-ignore - bindActionCreators result can be tricky with AsyncThunk
+                await actions.initApp().unwrap()
                 console.log('App init finished (Saga waited for child saga)')
             } catch (e) {
                 console.error('Init failed', e)
             }
         }
         init()
-    }, [dispatch])
+    }, [actions])
 
     // Demonstration 2: Awaitable Dispatch (Add Todo)
     const handleAddTodo = async (e: React.FormEvent) => {
@@ -32,16 +44,16 @@ function App() {
         if (!text.trim()) return
 
         try {
-            // 1. Dispatch action
-            const actionResult = await dispatch(addTodo({ text, simulateError }))
+            // 1. Dispatch action (via bound action)
+            const actionResult = await actions.addTodo({ text, simulateError })
             // 2. Wait for Saga to finish and unwrap payload
+            // @ts-ignore
             const data = unwrapResult(actionResult)
 
             console.log('Todo added successfully!', data)
             setText('')
         } catch (err) {
             console.error('Failed to add todo:', err)
-            // alert(`Error: ${err}`) // Alert is annoying, let the UI show red text
         }
     }
 
@@ -50,19 +62,32 @@ function App() {
         const val = e.target.value
         setLocalSearch(val)
 
-        // We don't await this usually for search-as-you-type, but you COULD.
-        // saga-toolkit will reject the previous promise with "Aborted" if typing fast.
-        dispatch(searchTodos(val)).then(result => {
+        // @ts-ignore
+        actions.searchTodos(val).then((result: any) => {
             if (searchTodos.fulfilled.match(result)) {
                 console.log('Search finished:', result.payload.length)
             }
-        }).catch(err => {
+        }).catch((err: any) => {
             if (err.message === 'Aborted') {
                 console.log('Previous search aborted (Expected behavior)')
             } else {
                 console.error('Search error', err)
             }
         })
+    }
+
+    // Demonstration 4: Aggregated Refresh (takeAggregateAsync)
+    const handleRefresh = async () => {
+        console.log('Spamming refresh...')
+        // Even if we call this 3 times rapidly, the saga only runs ONCE!
+        // All 3 promises will resolve with the same data.
+        const p1 = actions.refreshTodos()
+        const p2 = actions.refreshTodos()
+        const p3 = actions.refreshTodos()
+
+        const results = await Promise.all([p1, p2, p3])
+        // @ts-ignore
+        console.log('Aggregated results received:', results[0].payload)
     }
 
     return (
@@ -100,21 +125,34 @@ function App() {
 
                 <div className="card">
                     <h3>2. Search (Cancellable)</h3>
-                    <p>Dispatches <code>searchTodos</code>. Typing fast cancels previous requests (takeLatest).</p>
+                    <p>Uses <code>takeLatestAsync</code>. Fast typing cancels ongoing requests.</p>
                     <input
                         value={localSearch}
                         onChange={handleSearch}
-                        placeholder="Search..."
+                        placeholder="Search todos..."
                     />
                 </div>
 
-                <div className="list">
-                    {todos.map(todo => (
-                        <div key={todo.id} className={`todo-item ${todo.completed ? 'done' : ''}`}>
-                            {todo.text}
-                        </div>
-                    ))}
-                    {todos.length === 0 && !loading && <p>No todos found</p>}
+                <div className="card">
+                    <h3>3. Refresh (Aggregated)</h3>
+                    <p>Uses <code>takeAggregateAsync</code>. Clicking multiple times rapidly only triggers ONE actual saga call.</p>
+                    <button onClick={handleRefresh} disabled={loading}>
+                        Refresh (Spam me!)
+                    </button>
+                    {loading && <p className="status">Refreshing...</p>}
+                </div>
+
+                <div className="todo-list card">
+                    <h3>4. Result List</h3>
+                    {todos.length === 0 ? <p>No todos found.</p> : (
+                        <ul>
+                            {todos.map(todo => (
+                                <li key={todo.id} className={todo.completed ? 'done' : ''}>
+                                    {todo.text}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
             </header>
         </div>

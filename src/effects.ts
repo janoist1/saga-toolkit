@@ -20,48 +20,29 @@ export function takeEveryAsync<A extends Action = Action>(pattern: ActionPattern
 }
 
 export function takeLatestAsync<A extends Action = Action>(pattern: ActionPattern<A> | Channel<A>, saga: (action: A, ...args: unknown[]) => unknown, ...args: unknown[]) {
-    const tasks: Record<string, Deferred> = {}
-    let deferred: Deferred | null
+    return fork(function* () {
+        let lastTask: Task | null = null
+        let lastRequestId: string | null = null
 
-    function* wrapper(action: unknown, ...rest: unknown[]): Generator<unknown, void, unknown> {
-        if (deferred) {
-            const lastRequestId = (yield deferred.promise) as string
-            const request = (yield getRequest(lastRequestId)) as Request
+        while (true) {
+            const action = (yield take(pattern as unknown as ActionPattern)) as { meta: { requestId: string } }
+            const { requestId } = action.meta
 
-            if (request.abort) {
-                request.abort()
+            if (lastTask) {
+                if (lastRequestId) {
+                    const lastRequest = (yield getRequest(lastRequestId)) as Request
+                    if (lastRequest.abort) {
+                        lastRequest.abort()
+                    }
+                }
+                yield cancel(lastTask)
             }
 
-            const task = (yield tasks[lastRequestId].promise) as Task
-
-            yield cancel(task)
-        }
-
-        deferred = createDeferred()
-        const { requestId } = (action as { meta: { requestId: string } }).meta
-
-        yield getRequest(requestId) // Ensure request is registered/ready if needed
-
-        if (deferred) {
-            deferred.resolve(requestId)
-        }
-
-        yield wrap(saga as unknown as SagaWorker)(action, ...rest)
-
-        deferred = null
-    }
-
-    const customTakeEvery = (patternOrChannel: ActionPattern | Channel<Action>, saga: SagaWorker, ...args: unknown[]) => fork(function* (): Generator<unknown, void, unknown> {
-        while (true) {
-            const action = (yield take(patternOrChannel as unknown as ActionPattern)) as { meta: { requestId: string } }
-            const { requestId } = action.meta
-            tasks[requestId] = createDeferred()
-            const task = (yield fork(saga, ...args.concat(action))) as Task
-            tasks[requestId].resolve(task)
+            lastRequestId = requestId
+            const worker = wrap(saga as unknown as SagaWorker)
+            lastTask = (yield fork(worker as any, ...args.concat(action))) as Task
         }
     })
-
-    return customTakeEvery(pattern as ActionPattern | Channel<Action>, wrapper, ...args)
 }
 
 export function takeAggregateAsync<A extends Action = Action>(pattern: ActionPattern<A> | Channel<A>, saga: (action: A, ...args: unknown[]) => unknown, ...args: unknown[]) {

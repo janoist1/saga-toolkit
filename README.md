@@ -48,40 +48,32 @@ yarn add saga-toolkit
 
 ### 1. Create a "Saga Action"
 
-Instead of `createAsyncThunk` or standard standard action creators, use `createSagaAction`. This creates a thunk that returns a promise which your Saga will resolve or reject.
+Instead of `createAsyncThunk` or standard action creators, use `createSagaAction`. This creates an Async Thunk that returns a promise which your Saga will resolve or reject.
 
-```javascript
-/* slice.js */
-import { createSlice } from '@reduxjs/toolkit'
+```typescript
+/* slice.ts */
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { createSagaAction } from 'saga-toolkit'
+
+interface User {
+  id: string
+  name: string
+}
 
 const name = 'users'
 
-// Define the action
-export const fetchUser = createSagaAction(`${name}/fetchUser`)
-
-const initialState = {
-  data: null,
-  loading: false,
-  error: null,
-}
+// Define the action: <Returned, ThunkArg>
+export const fetchUser = createSagaAction<User, string>(`${name}/fetchUser`)
 
 const slice = createSlice({
   name,
-  initialState,
+  initialState: { data: null as User | null, loading: false },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchUser.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(fetchUser.fulfilled, (state, { payload }) => {
+      .addCase(fetchUser.pending, (state) => { state.loading = true })
+      .addCase(fetchUser.fulfilled, (state, action: PayloadAction<User>) => {
         state.loading = false
-        state.data = payload
-      })
-      .addCase(fetchUser.rejected, (state, { error }) => {
-        state.loading = false
-        state.error = error
+        state.data = action.payload
       })
   },
 })
@@ -91,18 +83,17 @@ export default slice.reducer
 
 ### 2. Connect to a Saga
 
-Use `takeEveryAsync` (or `takeLatestAsync`, etc.) to listen for the action. The return value of your saga becomes the `fulfilled` payload. Throwing an error becomes the `rejected` payload.
+Use `takeEveryAsync` (or `takeLatestAsync`, etc.) to listen for the action. Use the `SagaActionFromCreator` helper to type your worker sagas perfectly.
 
-```javascript
-/* sagas.js */
+```typescript
+/* sagas.ts */
 import { call } from 'redux-saga/effects'
-import { takeEveryAsync } from 'saga-toolkit'
+import { takeEveryAsync, SagaActionFromCreator } from 'saga-toolkit'
 import { fetchUser } from './slice'
-import API from './api'
 
-function* fetchUserSaga({ meta }) {
-  // meta.arg contains the argument passed to the dispatch
-  const userId = meta.arg
+// helper for clean typing
+function* fetchUserSaga(action: SagaActionFromCreator<typeof fetchUser>) {
+  const userId = action.meta.arg
   
   // The return value here resolves the promise!
   const user = yield call(API.getUser, userId)
@@ -110,27 +101,32 @@ function* fetchUserSaga({ meta }) {
 }
 
 export default function* rootSaga() {
-  yield takeEveryAsync(fetchUser.type, fetchUserSaga)
+  yield takeEveryAsync(fetchUser.pending.type, fetchUserSaga)
 }
 ```
 
 ### 3. Dispatch and Await in Component
 
-Now you can treat the Saga logic as if it were a simple async function.
+#### [Pro Tip] Use `bindActionCreators`
+To keep your component code clean and avoid passing `dispatch` everywhere, we recommend using `bindActionCreators`.
 
-```javascript
-/* UserComponent.jsx */
+```tsx
+/* UserComponent.tsx */
+import { useMemo } from 'react'
 import { useDispatch } from 'react-redux'
-import { useEffect } from 'react'
+import { bindActionCreators } from 'redux'
 import { fetchUser } from './slice'
 
-const UserComponent = ({ id }) => {
+const UserComponent = ({ id }: { id: string }) => {
   const dispatch = useDispatch()
+  
+  // Bind actions once
+  const actions = useMemo(() => bindActionCreators({ fetchUser }, dispatch), [dispatch])
 
   const handleFetch = async () => {
     try {
-      // This waits for the Saga to finish!
-      const user = await dispatch(fetchUser(id)).unwrap() 
+      // Clean awaitable call!
+      const user = await actions.fetchUser(id).unwrap() 
       console.log('Got user:', user)
     } catch (error) {
       console.error('Failed to fetch:', error)
@@ -143,27 +139,28 @@ const UserComponent = ({ id }) => {
 
 ## API Reference
 
-### `createSagaAction(typePrefix)`
-Creates a Redux Toolkit Async Thunk that is specially designed to work with the effects below.
+### `createSagaAction<Returned, ThunkArg>(typePrefix)`
+Creates a Redux Toolkit Async Thunk bridge.
 - **Returns**: An enhanced thunk action creator.
 
 ### `takeEveryAsync(pattern, saga, ...args)`
-Spawns a `saga` on each action dispatched to the Store that matches `pattern`.
-- Automatically resolves the promise associated with the action when the saga returns.
-- Automatically rejects the promise if the saga errors.
+Spawns a `saga` on each action.
+- Automatically resolves/rejects the promise associated with the action.
 
 ### `takeLatestAsync(pattern, saga, ...args)`
-Same as `takeEveryAsync`, but cancels any previous running task if a new matching action is dispatched.
-- **Note**: Cancelled tasks will reject the promise with an "Aborted" error (or similar).
+Same as `takeEveryAsync`, but cancels previous running task on new actions.
+- Propagates cancellation to the saga and rejets the promise with "Aborted".
 
 ### `takeAggregateAsync(pattern, saga, ...args)`
-Wait for the saga to finish for the first action. If subsequent actions with the same pattern are dispatched *while only one is running*, they will all share the **same promise result** as the first one.
-- Useful for de-duplicating identical requests (e.g., multiple components requesting "load config" simultaneously).
+Wait for the saga to finish. Subsequent identical actions dispatched while it's running will all share the **same promise result**.
+- Perfect for de-duplicating rapid "Refresh" calls.
 
 ### `putAsync(action)`
-Dispatches an action to the store and waits for the result.
-- Useful when you want to call another saga-action from within a saga and wait for it (composition).
-- **Example**: `const result = yield putAsync(otherAction())`
+Dispatches an action and waits for its Saga to finish.
+- `const result = yield putAsync(otherAction())`
+
+### `SagaActionFromCreator<typeof actionCreator>`
+TypeScript helper to extract the correct action type for your Saga worker.
 
 ## License
 

@@ -1,16 +1,13 @@
-import { call, cancelled } from 'redux-saga/effects'
-import {
-    takeEveryAsync,
-    takeLatestAsync,
-    putAsync
-} from 'saga-toolkit'
+import { call } from 'redux-saga/effects'
+import { takeEveryAsync, takeLatestAsync, putAsync, takeAggregateAsync, SagaActionFromCreator } from 'saga-toolkit'
 import * as actions from './slices/todoSlice'
 import { Todo } from './types'
 
-// --- Mock API with state ---
+// --- Mock API ---
+// We keep a simple local array to simulate a DB
 const mockDB: Todo[] = [
-    { id: '1', text: 'Buy Milk', completed: false },
-    { id: '2', text: 'Walk the Dog', completed: true },
+    { id: '1', text: 'Learn Redux Saga', completed: true },
+    { id: '2', text: 'Master Saga Toolkit', completed: false },
 ]
 
 const api = {
@@ -44,7 +41,7 @@ const api = {
  *    The return value is automatically dispatched as `addTodo.fulfilled`
  *    Any error thrown is dispatched as `addTodo.rejected`
  */
-function* addTodoSaga(action: ReturnType<typeof actions.addTodo.pending>) {
+function* addTodoSaga(action: SagaActionFromCreator<typeof actions.addTodo>) {
     const { text, simulateError } = action.meta.arg
     // Call API
     const newTodo: Todo = yield call(api.addTodo, text, simulateError)
@@ -52,58 +49,59 @@ function* addTodoSaga(action: ReturnType<typeof actions.addTodo.pending>) {
 }
 
 /**
- * 2. takeLatestAsync & Cancellation
- * 
- *    If a new search is dispatched while previous is running, 
- *    the previous one is cancelled (standard Saga behavior).
+ * 2. takeLatestAsync
  *    
- *    CRITICAL: saga-toolkit ensures the *Promise* of the 1st action 
- *    is rejected with 'Aborted', so the component knows it was cancelled.
+ *    Same as takeEveryAsync, but cancels previous running task if a new 
+ *    matching action is dispatched. Perfect for type-ahead search!
  */
-function* searchTodosSaga(action: ReturnType<typeof actions.searchTodos.pending>) {
-    try {
-        const term = action.meta.arg
-        const results: Todo[] = yield call(api.searchTodos, term)
-        return results
-    } finally {
-        if (yield cancelled()) {
-            console.log(`Search for "${action.meta.arg}" was cancelled!`)
-        }
-    }
+function* searchTodosSaga(action: SagaActionFromCreator<typeof actions.searchTodos>) {
+    const term = action.meta.arg
+    // API Call (will be cancelled by saga-toolkit if user types fast)
+    const results: Todo[] = yield call(api.searchTodos, term)
+    return results
 }
 
 /**
- * 3. putAsync
+ * 3. takeAggregateAsync
  * 
- *    Allows usage of "Saga Composition".
- *    The `initApp` saga dispatches `searchTodos` and WAITS for it to finish.
- *    This is normally hard in Redux Saga without callbacks or Promisified dispatch.
+ *    Wait for the saga to finish for the first action. If subsequent actions
+ *    are dispatched WHILE IT IS RUNNING, they share the same promise!
+ *    Great for "Refresh" buttons to avoid duplicate parallel requests.
+ */
+function* refreshTodosSaga() {
+    console.log('Refresh triggered...')
+    const results: Todo[] = yield call(api.searchTodos, '')
+    console.log('Refresh finished.')
+    return results
+}
+
+/**
+ * 4. putAsync 
+ *    
+ *    Dispatches another saga action and awaits its completion inside the saga.
  */
 function* initAppSaga() {
-    console.log('App initializing...')
     try {
-        // Dispatch another saga action and await its result directly in the saga!
-        const initialTodos = (yield putAsync(actions.searchTodos(''))) as { payload: Todo[] }
-
-        console.log('App initialized with:', initialTodos.payload)
-    } catch (err: any) {
-        if (err.message === 'Aborted') {
-            console.log('Init app cancelled (React Strict Mode double-invoke)')
-        } else {
-            console.error('Failed to init app', err)
-        }
+        console.log('Initializing App...')
+        // We can await another saga action!
+        yield putAsync(actions.searchTodos(''))
+        console.log('App Initialized.')
+    } catch (e: any) {
+        if (e.message === 'Aborted') return // React StrictMode sometimes triggers this
+        throw e
     }
 }
 
-/**
- * 4. Root Saga
- * 
- *    Wire everything up using normal Saga patterns + toolkit helpers.
- */
-export default function* rootSaga() {
+export default function* todoSaga() {
+    // 1. Every addTodo gets handled
     yield takeEveryAsync(actions.addTodo.pending.type, addTodoSaga)
-    // For search, we want to cancel previous requests -> takeLatestAsync
+
+    // 2. Only the latest search is kept
     yield takeLatestAsync(actions.searchTodos.pending.type, searchTodosSaga)
 
+    // 3. Duplicate refreshes are aggregated
+    yield takeAggregateAsync(actions.refreshTodos.pending.type, refreshTodosSaga)
+
+    // 4. App init logic
     yield takeEveryAsync(actions.initApp.pending.type, initAppSaga)
 }
