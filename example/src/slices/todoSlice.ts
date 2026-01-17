@@ -23,7 +23,7 @@ const initialState: AppState = {
 export const initApp = createSagaAction<void, void>(`${name}/initApp`)
 
 // Action to add a todo (demonstrates takeEveryAsync with return value)
-export const addTodo = createSagaAction<Todo, string>(`${name}/addTodo`)
+export const addTodo = createSagaAction<Todo, { text: string; simulateError: boolean }>(`${name}/addTodo`)
 
 // Action to search todos (demonstrates takeLatestAsync and cancellation)
 export const searchTodos = createSagaAction<Todo[], string>(`${name}/searchTodos`)

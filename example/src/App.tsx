@@ -9,6 +9,7 @@ function App() {
     const { todos, loading, error } = useAppSelector(state => state.todo)
 
     const [text, setText] = useState('')
+    const [simulateError, setSimulateError] = useState(false)
     const [localSearch, setLocalSearch] = useState('')
 
     // Demonstration 1: putAsync usage (App Start)
@@ -32,7 +33,7 @@ function App() {
 
         try {
             // 1. Dispatch action
-            const actionResult = await dispatch(addTodo(text))
+            const actionResult = await dispatch(addTodo({ text, simulateError }))
             // 2. Wait for Saga to finish and unwrap payload
             const data = unwrapResult(actionResult)
 
@@ -40,7 +41,7 @@ function App() {
             setText('')
         } catch (err) {
             console.error('Failed to add todo:', err)
-            alert(`Error: ${err}`)
+            // alert(`Error: ${err}`) // Alert is annoying, let the UI show red text
         }
     }
 
@@ -73,15 +74,26 @@ function App() {
                     <h3>1. Add Todo (Awaitable)</h3>
                     <p>Dispatches <code>addTodo</code>. The component waits for the API delay (500ms).</p>
                     <form onSubmit={handleAddTodo}>
-                        <input
-                            value={text}
-                            onChange={e => setText(e.target.value)}
-                            placeholder="New Todo..."
-                            disabled={loading}
-                        />
-                        <button type="submit" disabled={loading}>
-                            {loading ? 'Adding...' : 'Add'}
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+                            <input
+                                value={text}
+                                onChange={e => setText(e.target.value)}
+                                placeholder="New Todo..."
+                                disabled={loading}
+                            />
+                            <button type="submit" disabled={loading}>
+                                {loading ? 'Adding...' : 'Add'}
+                            </button>
+                        </div>
+                        <label style={{ fontSize: '0.8rem', cursor: 'pointer' }}>
+                            <input
+                                type="checkbox"
+                                checked={simulateError}
+                                onChange={e => setSimulateError(e.target.checked)}
+                                style={{ width: 'auto', marginRight: 5 }}
+                            />
+                            Simulate API Error
+                        </label>
                     </form>
                     {error && <div className="error">{error}</div>}
                 </div>
