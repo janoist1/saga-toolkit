@@ -1,0 +1,366 @@
+
+> saga-toolkit@2.2.0 test
+> vitest
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ DEV  v1.6.1 /Users/i/Dev/saga-toolkit
+
+stdout | test/sagaToolkit.test.ts > saga-toolkit > should resolve promise when saga returns
+DEBUG: Starting saga CKuNV6h3mYz4TechvSlAz
+DEBUG: Finally block reached CKuNV6h3mYz4TechvSlAz
+
+stdout | test/sagaToolkit.test.ts > saga-toolkit > should reject promise when saga throws
+DEBUG: Starting saga Pb3At2Q3Q8bUZ4IGMebbL
+DEBUG: Finally block reached Pb3At2Q3Q8bUZ4IGMebbL
+
+stdout | test/sagaToolkit.test.ts > saga-toolkit > should support putAsync
+DEBUG: Starting saga IwAwuH0QXeCYaDftzfVJ0
+DEBUG: Starting saga mg4asNcWkpKJnLttUOFez
+DEBUG: Finally block reached mg4asNcWkpKJnLttUOFez
+DEBUG: Finally block reached IwAwuH0QXeCYaDftzfVJ0
+
+stdout | test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+DEBUG: Starting saga p5dzrJWJESQoFzni7BO_d
+
+stdout | test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+DEBUG: Finally block reached p5dzrJWJESQoFzni7BO_d
+
+stdout | test/sagaToolkit.test.ts > saga-toolkit > should support takeAggregateAsync (running multiple requests)
+DEBUG: Starting saga feITtI7yZCfQdAxyITPLs
+
+stdout | test/sagaToolkit.test.ts > saga-toolkit > should support takeAggregateAsync (running multiple requests)
+DEBUG: Finally block reached feITtI7yZCfQdAxyITPLs
+
+ ❯ test/sagaToolkit.test.ts  (5 tests | 1 failed) 5065ms
+   ❯ test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  13:13:50
+   Duration  5.35s (transform 59ms, setup 0ms, collect 105ms, tests 5.07s, environment 0ms, prepare 63ms)
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+[3Jc
+ RERUN  src/index.ts x1
+
+ ❯ test/sagaToolkit.test.ts  (5 tests | 1 failed) 5081ms
+   ❯ test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  13:15:12
+   Duration  5.33s
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+       rerun x1
+[2K[1A[2K[G[3Jc
+ RERUN  src/index.ts x2
+
+ ❯ test/sagaToolkit.test.ts  (5 tests | 1 failed) 5072ms
+   ❯ test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  13:15:54
+   Duration  5.30s
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+       rerun x2
+[2K[1A[2K[G[3Jc
+ RERUN  src/index.ts x3
+
+ ❯ test/sagaToolkit.test.ts  (5 tests | 1 failed) 5099ms
+   ❯ test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  13:16:33
+   Duration  5.53s
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+       rerun x3
+[2K[1A[2K[G[3Jc
+ RERUN  src/index.ts x4
+
+ ❯ test/sagaToolkit.test.ts  (5 tests | 1 failed) 5153ms
+   ❯ test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  13:16:43
+   Duration  5.47s
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+       rerun x4
+[2K[1A[2K[G[3Jc
+ RERUN  src/index.ts x5
+
+ ❯ test/sagaToolkit.test.ts  (5 tests | 1 failed) 5108ms
+   ❯ test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  13:16:49
+   Duration  5.34s
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+       rerun x5
+[2K[1A[2K[G[3Jc
+ RERUN  src/index.ts x6
+
+ ❯ test/sagaToolkit.test.ts  (5 tests | 1 failed) 5126ms
+   ❯ test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  13:17:20
+   Duration  5.68s
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+       rerun x6
+[2K[1A[2K[G[3Jc
+ RERUN  src/index.ts x7
+
+ ❯ test/sagaToolkit.test.ts  (5 tests | 1 failed) 5106ms
+   ❯ test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  13:17:27
+   Duration  5.69s
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+       rerun x7
+[2K[1A[2K[G[3Jc
+ RERUN  src/index.ts x8
+
+stdout | test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+DEBUG: Finally check 5hCOEAlmkBn6HCN80F7xq true true
+DEBUG: Calling abort
+
+stderr | test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+ReferenceError: cancel is not defined
+    at wrapper (/Users/i/Dev/saga-toolkit/src/index.ts:158:13)
+    at wrapper.next (<anonymous>)
+    at next (/Users/i/Dev/saga-toolkit/node_modules/@redux-saga/core/dist/redux-saga-core.development.esm.js:1015:27)
+    at currCb (/Users/i/Dev/saga-toolkit/node_modules/@redux-saga/core/dist/redux-saga-core.development.esm.js:1098:7)
+The above error occurred in task wrapper
+    created by anonymous
+    created by rootSaga
+Tasks cancelled due to error:
+anonymous
+wrapper
+
+ ❯ test/sagaToolkit.test.ts  (5 tests | 1 failed) 5124ms
+   ❯ test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  13:18:15
+   Duration  5.52s
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+       rerun x8
+[2K[1A[2K[G[3Jc
+ RERUN  src/index.ts x9
+
+stdout | test/sagaToolkit.test.ts > saga-toolkit > takeLatestAsync should cancel previous request
+DEBUG: Finally check XMyKYiGV1ytJRXqWcQ423 true true
+DEBUG: Calling abort
+
+ ✓ test/sagaToolkit.test.ts  (5 tests) 288ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  13:18:21
+   Duration  616ms
+
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+       rerun x9
+[2K[1A[2K[G[3Jc
+ RERUN  src/index.ts x10
+
+ ✓ test/sagaToolkit.test.ts  (5 tests) 254ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  13:18:44
+   Duration  727ms
+
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+       rerun x10
+[2K[1A[2K[G[3Jc
+ RERUN  src/index.ts x11
+
+ ✓ test/sagaToolkit.test.ts  (5 tests) 224ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  13:18:46
+   Duration  555ms
+
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+       rerun x11
+[2K[1A[2K[G[3Jc
+ RERUN  src/index.ts x12
+
+ ✓ test/sagaToolkit.test.ts  (5 tests) 167ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  13:18:48
+   Duration  237ms
+
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+       rerun x12
+[2K[1A[2K[G[3Jc
+ RERUN  src/index.ts x13
+
+ ✓ test/sagaToolkit.test.ts  (5 tests) 184ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  13:20:27
+   Duration  1.20s
+
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+       rerun x13
+[2K[1A[2K[G[3Jc
+ RERUN  src/utils.ts x14
+
+ ✓ test/sagaToolkit.test.ts  (5 tests) 248ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  13:21:07
+   Duration  910ms
+
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+       rerun x14
+[2K[1A[2K[G[3Jc
+ RERUN  src/effects.ts x15
+
+ ✓ test/sagaToolkit.test.ts  (5 tests) 249ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  13:22:53
+   Duration  600ms
+
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+       rerun x15
+[2K[1A[2K[G
