@@ -177,5 +177,37 @@ describe('saga-toolkit', () => {
             vi.advanceTimersByTime(31000)
             expect(_getInternalState().size).toBe(0)
         })
+
+        it('takeLatestAsync should not hang after previous request is cleaned up (TTL)', async () => {
+            const action = createSagaAction('test/hang/latest')
+            let calls = 0
+            function* saga() {
+                calls++
+                yield delay(100)
+            }
+            function* rootSaga() {
+                yield takeLatestAsync(action.pending.type, saga)
+            }
+            const sagaMiddleware = createSagaMiddleware()
+            const store = configureStore({
+                reducer: createReducer({}, () => { }),
+                middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(sagaMiddleware),
+            })
+            sagaMiddleware.run(rootSaga)
+
+            // 1. First call
+            store.dispatch(action())
+            await vi.advanceTimersByTimeAsync(150) // Allow to finish
+            expect(calls).toBe(1)
+
+            // 2. Wait for TTL cleanup
+            await vi.advanceTimersByTimeAsync(35000)
+            expect(_getInternalState().size).toBe(0)
+
+            // 3. Second call - should NOT hang and should work
+            store.dispatch(action())
+            await vi.advanceTimersByTimeAsync(150)
+            expect(calls).toBe(2)
+        })
     })
 })

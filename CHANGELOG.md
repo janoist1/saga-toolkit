@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.2.7] - 2026-01-17
+### Fixed
+- **Critical Fix**: Resolved a regression where `takeLatestAsync` would hang indefinitely if the previous action's request was already cleaned up (e.g., via TTL).
+- Updated internal request lookups in effects to use non-blocking `getRequestSync`.
+
 ## [2.2.6] - 2026-01-17
 ### Fixed
 - Updated `peerDependencies` to support **Redux Toolkit 2.0** (`^1.9.5 || ^2.0.0`).

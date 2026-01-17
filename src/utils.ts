@@ -48,6 +48,10 @@ export const setRequestAbort = (requestId: string, abort: () => void) => {
     }
 }
 
+export const getRequestSync = (requestId: string): Request | undefined => {
+    return requests[requestId]
+}
+
 export function* getRequest(requestId: string): Generator<unknown, Request, unknown> {
     const request = requests[requestId]
 

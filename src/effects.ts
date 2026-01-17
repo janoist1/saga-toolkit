@@ -5,7 +5,7 @@ import type { Action } from 'redux'
 import createDeferred from '@redux-saga/deferred'
 import { AsyncThunkAction, unwrapResult } from '@reduxjs/toolkit'
 import { SagaWorker, Deferred, Request } from './types'
-import { wrap, getRequest, cleanup } from './utils'
+import { wrap, getRequest, getRequestSync, cleanup } from './utils'
 
 // Helper to avoid 'takeEvery' overload issues with spread arguments
 const takeEveryHelper = (patternOrChannel: ActionPattern | Channel<Action>, worker: SagaWorker, ...args: unknown[]) => fork(function* () {
@@ -30,8 +30,8 @@ export function takeLatestAsync<A extends Action = Action>(pattern: ActionPatter
 
             if (lastTask) {
                 if (lastRequestId) {
-                    const lastRequest = (yield getRequest(lastRequestId)) as Request
-                    if (lastRequest.abort) {
+                    const lastRequest = getRequestSync(lastRequestId)
+                    if (lastRequest && lastRequest.abort) {
                         lastRequest.abort()
                     }
                 }
