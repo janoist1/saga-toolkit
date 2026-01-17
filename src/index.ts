@@ -112,18 +112,18 @@ const wrap = (saga: SagaWorker) => function* (action: unknown, ...rest: unknown[
 }
 
 // Helper to avoid 'takeEvery' overload issues with spread arguments
-const takeEveryHelper = (patternOrChannel: ActionPattern | Channel<unknown>, worker: SagaWorker, ...args: unknown[]) => fork(function* () {
+const takeEveryHelper = (patternOrChannel: ActionPattern | Channel<Action>, worker: SagaWorker, ...args: unknown[]) => fork(function* () {
     while (true) {
         const action = (yield take(patternOrChannel as unknown as ActionPattern)) as Action
         yield fork(worker, ...args.concat(action))
     }
 })
 
-export function takeEveryAsync(pattern: ActionPattern | Channel<unknown>, saga: SagaWorker, ...args: unknown[]) {
+export function takeEveryAsync(pattern: ActionPattern | Channel<Action>, saga: SagaWorker, ...args: unknown[]) {
     return takeEveryHelper(pattern, wrap(saga), ...args)
 }
 
-export function takeLatestAsync(pattern: ActionPattern | Channel<unknown>, saga: SagaWorker, ...args: unknown[]) {
+export function takeLatestAsync(pattern: ActionPattern | Channel<Action>, saga: SagaWorker, ...args: unknown[]) {
     const tasks: Record<string, Deferred> = {}
     let deferred: Deferred | null
 
@@ -155,7 +155,7 @@ export function takeLatestAsync(pattern: ActionPattern | Channel<unknown>, saga:
         deferred = null
     }
 
-    const customTakeEvery = (patternOrChannel: ActionPattern | Channel<unknown>, saga: SagaWorker, ...args: unknown[]) => fork(function* (): Generator<unknown, void, unknown> {
+    const customTakeEvery = (patternOrChannel: ActionPattern | Channel<Action>, saga: SagaWorker, ...args: unknown[]) => fork(function* (): Generator<unknown, void, unknown> {
         while (true) {
             const action = (yield take(patternOrChannel as unknown as ActionPattern)) as { meta: { requestId: string } }
             const { requestId } = action.meta
@@ -168,7 +168,7 @@ export function takeLatestAsync(pattern: ActionPattern | Channel<unknown>, saga:
     return customTakeEvery(pattern, wrapper, ...args)
 }
 
-export function takeAggregateAsync(pattern: ActionPattern | Channel<unknown>, saga: SagaWorker, ...args: unknown[]) {
+export function takeAggregateAsync(pattern: ActionPattern | Channel<Action>, saga: SagaWorker, ...args: unknown[]) {
     let deferred: Deferred | null
 
     function* wrapper(action: unknown, ...rest: unknown[]): Generator<unknown, void, unknown> {
