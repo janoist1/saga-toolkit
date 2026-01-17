@@ -1,7 +1,7 @@
 import createDeferred from '@redux-saga/deferred'
 import { createAsyncThunk, unwrapResult } from '@reduxjs/toolkit'
 import type { AsyncThunk } from '@reduxjs/toolkit'
-import { put, take, fork, takeEvery, cancel } from 'redux-saga/effects'
+import { put, take, fork, cancel } from 'redux-saga/effects'
 import type { PutEffect } from 'redux-saga/effects'
 import type { Task } from 'redux-saga'
 
@@ -113,10 +113,19 @@ const wrap = (saga: (...args: any[]) => any) => function* (action: any, ...rest:
     }
 }
 
+// Helper to avoid 'takeEvery' overload issues with spread arguments
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const takeEveryHelper = (patternOrChannel: any, worker: any, ...args: any[]) => fork(function* () {
+    while (true) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const action: any = yield take(patternOrChannel)
+        yield fork(worker, ...args.concat(action))
+    }
+})
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function takeEveryAsync(pattern: any, saga: (...args: any[]) => any, ...args: any[]) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (takeEvery as any)(pattern, wrap(saga), ...args)
+    return takeEveryHelper(pattern, wrap(saga), ...args)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -151,6 +160,19 @@ export function takeLatestAsync(pattern: any, saga: (...args: any[]) => any, ...
         deferred = null
     }
 
+    // Reuse logic similar to takeEveryHelper but with specific tasks management if needed, 
+    // but originally it used customTakeEvery which was just takeEvery logic.
+    // We can reuse takeEveryHelper here as the wrapper handles cancellation logic.
+
+    // Note: Original code defined customTakeEvery implicitly resolving a deferred task? 
+    // Let's check original logic carefully.
+    // Original `customTakeEvery` did:
+    // tasks[requestId] = createDeferred()
+    // const task = yield fork(saga, ...args.concat(action))
+    // tasks[requestId].resolve(task)
+
+    // This is EXTRA logic on top of standard takeEvery. So we must keep it.
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const customTakeEvery = (patternOrChannel: any, saga: any, ...args: any[]) => fork(function* (): Generator<any, void, any> {
         while (true) {
@@ -163,8 +185,7 @@ export function takeLatestAsync(pattern: any, saga: (...args: any[]) => any, ...
         }
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return customTakeEvery(pattern, wrapper, ...(args as any[]))
+    return customTakeEvery(pattern, wrapper, ...args)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -203,8 +224,7 @@ export function takeAggregateAsync(pattern: any, saga: (...args: any[]) => any, 
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (takeEvery as any)(pattern, wrapper, ...args)
+    return takeEveryHelper(pattern, wrapper, ...args)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
