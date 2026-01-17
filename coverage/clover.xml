@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1768652681269" clover="3.2.0">
-  <project timestamp="1768652681269" name="All files">
+<coverage generated="1768653545653" clover="3.2.0">
+  <project timestamp="1768653545653" name="All files">
     <metrics statements="237" coveredstatements="237" conditionals="38" coveredconditionals="37" methods="17" coveredmethods="17" elements="292" coveredelements="291" complexity="0" loc="237" ncloc="237" packages="1" files="4" classes="4"/>
     <file name="effects.ts" path="/Users/i/Dev/saga-toolkit/src/effects.ts">
       <metrics statements="107" coveredstatements="107" conditionals="18" coveredconditionals="18" methods="8" coveredmethods="8"/>
