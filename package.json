@@ -1,11 +1,22 @@
 {
   "name": "saga-toolkit",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "description": "An extension for redux-toolkit that allows sagas to resolve async thunk actions.",
-  "main": "index.js",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
   "scripts": {
-    "build": "./node_modules/.bin/babel sagaToolkit.js --out-file index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -26,11 +37,21 @@
   },
   "homepage": "https://github.com/janoist1/saga-toolkit#readme",
   "devDependencies": {
-    "@babel/cli": "^7.16.8",
-    "@babel/core": "^7.16.12",
-    "@babel/node": "^7.16.8",
-    "@babel/preset-env": "^7.16.11",
     "@reduxjs/toolkit": "^1.9.5",
-    "redux": "^4.1.2"
+    "@types/node": "^20.0.0",
+    "@types/redux-saga": "^0.10.5",
+    "@typescript-eslint/eslint-plugin": "^8.53.0",
+    "@typescript-eslint/parser": "^8.53.0",
+    "eslint": "^9.39.2",
+    "redux": "^4.1.2",
+    "redux-saga": "^1.2.3",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.53.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "@reduxjs/toolkit": "^1.9.5",
+    "redux-saga": "^1.0.0"
   }
 }
