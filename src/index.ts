@@ -116,7 +116,7 @@ const wrap = (saga: (...args: any[]) => any) => function* (action: any, ...rest:
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function takeEveryAsync(pattern: any, saga: (...args: any[]) => any, ...args: any[]) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return takeEvery(pattern, wrap(saga), ...(args as any[]))
+    return (takeEvery as any)(pattern, wrap(saga), ...args)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -204,7 +204,7 @@ export function takeAggregateAsync(pattern: any, saga: (...args: any[]) => any, 
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return takeEvery(pattern, wrapper, ...(args as any[]))
+    return (takeEvery as any)(pattern, wrapper, ...args)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
