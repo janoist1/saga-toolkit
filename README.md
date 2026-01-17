@@ -13,6 +13,27 @@ If you love the "fire-and-forget" nature of Sagas for complex flows but miss the
 - ⚡ **Reduce Boilerplate**: Easily handle loading/success/error states in slices using standard RTK patterns.
 - 🛑 **Cancellation**: Propagates cancellation from the promise to the Saga.
 
+## 🎮 Try the Example App
+
+This project includes a fully functional **Todo App** built with **Vite**, **React 18**, and **TypeScript** to demonstrate:
+*   `createSagaAction` (AsyncThunk bridge)
+*   `takeEveryAsync` (Awaitable actions)
+*   `takeLatestAsync` (Cancellable search)
+*   `putAsync` (Saga composition)
+
+### Run Locally
+
+```bash
+cd example
+npm install
+npm run dev
+```
+
+### Try Online (StackBlitz)
+> Note: Requires the package to be published to npm.
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/janoist1/saga-toolkit/tree/master/example)
+
 ## Installation
 
 ```bash
