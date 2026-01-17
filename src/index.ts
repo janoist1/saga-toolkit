@@ -67,7 +67,6 @@ export const createSagaAction = <Returned, ThunkArg = void>(type: string): SagaA
         rejected: thunk.rejected,
         fulfilled: thunk.fulfilled,
         typePrefix: thunk.typePrefix,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         type: (thunk.pending as unknown as { type: string }).type,
     })
 
