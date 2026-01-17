@@ -47,7 +47,7 @@ export type SagaAction<Returned, ThunkArg = void> = AsyncThunk<Returned, ThunkAr
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createSagaAction = <Returned, ThunkArg = void>(type: string): SagaAction<Returned, ThunkArg> => {
-    const thunk = createAsyncThunk<Returned, ThunkArg>(type, (_, { requestId }) => addRequest(requestId))
+    const thunk = createAsyncThunk<Returned, ThunkArg>(type, (_, { requestId }) => addRequest(requestId) as Promise<Returned>)
 
     function actionCreator(arg: ThunkArg) {
         const originalActionCreator = thunk(arg)
