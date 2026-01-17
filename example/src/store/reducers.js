@@ -1,11 +1,8 @@
 import { combineReducers } from 'redux'
-import { connectRouter } from 'connected-react-router'
 import root from '../slice'
 
-const createRootReducer = history =>
-  combineReducers({
-    router: connectRouter(history),
-    root,
-  })
+const rootReducer = combineReducers({
+  root,
+})
 
-export default createRootReducer
+export default rootReducer
