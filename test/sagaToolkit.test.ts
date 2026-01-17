@@ -1,11 +1,11 @@
 import { configureStore, createReducer } from '@reduxjs/toolkit'
 import createSagaMiddleware from 'redux-saga'
-import { call, delay } from 'redux-saga/effects'
+import { delay } from 'redux-saga/effects'
 import { describe, it, expect } from 'vitest'
-import { createSagaAction, takeEveryAsync, takeLatestAsync, putAsync } from '../src/index'
+import { createSagaAction, takeEveryAsync, takeLatestAsync, putAsync, takeAggregateAsync } from '../src/index'
 
 describe('saga-toolkit', () => {
-    const createStore = (rootSaga: any) => {
+    const createStore = (rootSaga: () => Generator) => {
         const sagaMiddleware = createSagaMiddleware()
         const store = configureStore({
             reducer: createReducer({}, () => { }),
@@ -18,12 +18,13 @@ describe('saga-toolkit', () => {
     it('should resolve promise when saga returns', async () => {
         const action = createSagaAction<string, string>('test/action')
 
-        function* saga(payload: any) {
-            return `Processed ${payload.meta.arg}`
+        // Listening to pending action: args are in meta.arg
+        function* saga(action: { type: string, meta: { arg: string } }) {
+            return `Processed ${action.meta.arg}`
         }
 
         function* rootSaga() {
-            yield takeEveryAsync(action.type, saga)
+            yield takeEveryAsync(action.pending.type, saga)
         }
 
         const store = createStore(rootSaga)
@@ -40,7 +41,7 @@ describe('saga-toolkit', () => {
         }
 
         function* rootSaga() {
-            yield takeEveryAsync(action.type, saga)
+            yield takeEveryAsync(action.pending.type, saga)
         }
 
         const store = createStore(rootSaga)
@@ -62,8 +63,8 @@ describe('saga-toolkit', () => {
         }
 
         function* rootSaga() {
-            yield takeEveryAsync(action1.type, saga1)
-            yield takeEveryAsync(action2.type, saga2)
+            yield takeEveryAsync(action1.pending.type, saga1)
+            yield takeEveryAsync(action2.pending.type, saga2)
         }
 
         const store = createStore(rootSaga)
@@ -81,7 +82,7 @@ describe('saga-toolkit', () => {
         }
 
         function* rootSaga() {
-            yield takeLatestAsync(action.type, saga)
+            yield takeLatestAsync(action.pending.type, saga)
         }
 
         const store = createStore(rootSaga)
@@ -89,21 +90,37 @@ describe('saga-toolkit', () => {
         const p1 = store.dispatch(action())
         const p2 = store.dispatch(action())
 
-        // p1 should be cancelled/rejected (depending on implementation it might hang or reject)
-        // The current implementation aborts the *request*, and cancels the *task*.
-        // When a task is cancelled in saga, usually it just stops. 
-        // But since the promise is external, we need to see what happens.
-        // In `takeLatestAsync`, we do `request.abort()` which calls `promise.abort`.
-        // Redux Toolkit async thunk promises have an `abort()` method.
-
         await expect(p2.unwrap()).resolves.toBe('done')
 
-        // Check p1 status or result. 
-        // Depending on RTK version and `abort` signal handling, this might reject with AbortError.
         try {
             await p1.unwrap()
         } catch (e: any) {
-            expect(e.message).toMatch(/Aborted/i)
+            // Redux Toolkit serialization might make it a plain object
+            const message = e.message || (typeof e === 'string' ? e : JSON.stringify(e))
+            expect(message).toMatch(/Aborted/i)
         }
+    })
+
+    it('should support takeAggregateAsync (running multiple requests)', async () => {
+        const action = createSagaAction<string, number>('test/aggregate')
+
+        function* saga(action: { type: string, meta: { arg: number } }) {
+            yield delay(50)
+            return `Result ${action.meta.arg}`
+        }
+
+        function* rootSaga() {
+            yield takeAggregateAsync(action.pending.type, saga)
+        }
+
+        const store = createStore(rootSaga)
+
+        const p1 = store.dispatch(action(1))
+        const p2 = store.dispatch(action(1))
+
+        const results = await Promise.all([p1.unwrap(), p2.unwrap()])
+
+        expect(results[0]).toBe('Result 1')
+        expect(results[1]).toBe('Result 1')
     })
 })

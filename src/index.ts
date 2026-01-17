@@ -1,12 +1,14 @@
 import createDeferred from '@redux-saga/deferred'
 import { createAsyncThunk, unwrapResult } from '@reduxjs/toolkit'
-import type { AsyncThunk, ThunkDispatch } from '@reduxjs/toolkit'
+import type { AsyncThunk, ThunkDispatch, AsyncThunkAction } from '@reduxjs/toolkit'
 import { put, take, fork, cancel } from 'redux-saga/effects'
 import type { PutEffect, ActionPattern } from 'redux-saga/effects'
 import type { Task, Channel } from 'redux-saga'
 import type { Action } from 'redux'
 
 // Generic definition for any saga worker
+// We allow strict typing for workers by using unknown[] but workers often expect strict args.
+// Typescript allows assigning (action: A) => ... to (...args: unknown[]) => ... IF defined correctly.
 type SagaWorker = (...args: unknown[]) => unknown
 
 interface Deferred<T = unknown> {
@@ -118,11 +120,15 @@ const takeEveryHelper = (patternOrChannel: ActionPattern | Channel<Action>, work
     }
 })
 
-export function takeEveryAsync(pattern: ActionPattern | Channel<Action>, saga: SagaWorker, ...args: unknown[]) {
-    return takeEveryHelper(pattern, wrap(saga), ...args)
+// We revert SagaWorker to any[] because validation of saga match is tricky with strict unknown
+// But we keep internal implementation clean.
+// Updated generics for usage comfort:
+
+export function takeEveryAsync<A extends Action = Action>(pattern: ActionPattern<A> | Channel<A>, saga: (action: A, ...args: unknown[]) => unknown, ...args: unknown[]) {
+    return takeEveryHelper(pattern as ActionPattern | Channel<Action>, wrap(saga as unknown as SagaWorker), ...args)
 }
 
-export function takeLatestAsync(pattern: ActionPattern | Channel<Action>, saga: SagaWorker, ...args: unknown[]) {
+export function takeLatestAsync<A extends Action = Action>(pattern: ActionPattern<A> | Channel<A>, saga: (action: A, ...args: unknown[]) => unknown, ...args: unknown[]) {
     const tasks: Record<string, Deferred> = {}
     let deferred: Deferred | null
 
@@ -149,7 +155,7 @@ export function takeLatestAsync(pattern: ActionPattern | Channel<Action>, saga: 
             deferred.resolve(requestId)
         }
 
-        yield wrap(saga)(action, ...rest)
+        yield wrap(saga as unknown as SagaWorker)(action, ...rest)
 
         deferred = null
     }
@@ -164,10 +170,10 @@ export function takeLatestAsync(pattern: ActionPattern | Channel<Action>, saga: 
         }
     })
 
-    return customTakeEvery(pattern, wrapper, ...args)
+    return customTakeEvery(pattern as ActionPattern | Channel<Action>, wrapper, ...args)
 }
 
-export function takeAggregateAsync(pattern: ActionPattern | Channel<Action>, saga: SagaWorker, ...args: unknown[]) {
+export function takeAggregateAsync<A extends Action = Action>(pattern: ActionPattern<A> | Channel<A>, saga: (action: A, ...args: unknown[]) => unknown, ...args: unknown[]) {
     let deferred: Deferred | null
 
     function* wrapper(action: unknown, ...rest: unknown[]): Generator<unknown, void, unknown> {
@@ -190,7 +196,7 @@ export function takeAggregateAsync(pattern: ActionPattern | Channel<Action>, sag
             if (request.deferred) {
                 const { promise } = request.deferred
 
-                yield wrap(saga)(action, ...rest)
+                yield wrap(saga as unknown as SagaWorker)(action, ...rest)
 
                 if (deferred) {
                     deferred.resolve({ promise })
@@ -200,10 +206,10 @@ export function takeAggregateAsync(pattern: ActionPattern | Channel<Action>, sag
         }
     }
 
-    return takeEveryHelper(pattern, wrapper, ...args)
+    return takeEveryHelper(pattern as ActionPattern | Channel<Action>, wrapper, ...args)
 }
 
-export function* putAsync(action: Action | PutEffect): Generator<PutEffect | Promise<unknown>, unknown, unknown> {
+export function* putAsync(action: Action | PutEffect | AsyncThunkAction<unknown, unknown, object>): Generator<PutEffect | Promise<unknown>, unknown, unknown> {
     const promise = yield put(action as Action)
     const result = yield (promise as Promise<unknown>)
     return unwrapResult(result as { payload: unknown, error?: unknown, meta?: unknown })
