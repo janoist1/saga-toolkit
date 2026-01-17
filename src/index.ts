@@ -1,4 +1,3 @@
-// @ts-expect-error: no types for this package
 import createDeferred from '@redux-saga/deferred'
 import { createAsyncThunk, unwrapResult } from '@reduxjs/toolkit'
 import type { AsyncThunk } from '@reduxjs/toolkit'
@@ -116,7 +115,8 @@ const wrap = (saga: (...args: any[]) => any) => function* (action: any, ...rest:
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function takeEveryAsync(pattern: any, saga: (...args: any[]) => any, ...args: any[]) {
-    return takeEvery(pattern, wrap(saga), ...args)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return takeEvery(pattern, wrap(saga), ...(args as any[]))
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -163,8 +163,8 @@ export function takeLatestAsync(pattern: any, saga: (...args: any[]) => any, ...
         }
     })
 
-    // @ts-expect-error: custom generator type mismatch
-    return customTakeEvery(pattern, wrapper, ...args)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return customTakeEvery(pattern, wrapper, ...(args as any[]))
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -203,7 +203,8 @@ export function takeAggregateAsync(pattern: any, saga: (...args: any[]) => any, 
         }
     }
 
-    return takeEvery(pattern, wrapper, ...args)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return takeEvery(pattern, wrapper, ...(args as any[]))
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
