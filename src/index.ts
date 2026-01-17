@@ -1,10 +1,9 @@
+// @ts-expect-error: no types for this package
+import createDeferred from '@redux-saga/deferred'
 import { createAsyncThunk, unwrapResult } from '@reduxjs/toolkit'
 import type { AsyncThunk } from '@reduxjs/toolkit'
 import { put, take, fork, takeEvery, cancel } from 'redux-saga/effects'
 import type { Task } from 'redux-saga'
-
-// @ts-ignore: no types for this package
-import createDeferred from '@redux-saga/deferred'
 
 interface Deferred<T = any> {
     resolve: (value: T) => void
@@ -48,7 +47,6 @@ export const createSagaAction = <Returned, ThunkArg = void>(type: string): SagaA
     const thunk = createAsyncThunk<Returned, ThunkArg>(type, (_, { requestId }) => addRequest(requestId))
 
     function actionCreator(arg: ThunkArg) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const originalActionCreator = thunk(arg)
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,7 +159,7 @@ export function takeLatestAsync(pattern: any, saga: (...args: any[]) => any, ...
         }
     })
 
-    // @ts-ignore
+    // @ts-expect-error: custom generator type mismatch
     return customTakeEvery(pattern, wrapper, ...args)
 }
 
