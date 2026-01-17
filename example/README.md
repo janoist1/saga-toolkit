@@ -1,70 +1,90 @@
-# Getting Started with Create React App
+# Saga Toolkit Example - Todo App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This project demonstrates the power of `saga-toolkit` by implementing a fully typed Todo App using **Redux Toolkit**, **Redux Saga**, and **TypeScript** (Vite + React 18).
 
-## Available Scripts
+It highlights how `saga-toolkit` bridges the gap between simple async flows (like `createAsyncThunk`) and complex Saga capabilities (like cancellation, debouncing, and worker/watcher patterns).
 
-In the project directory, you can run:
+## 🚀 Features Demonstrated
 
-### `yarn start`
+This example covers 4 main patterns found in real-world applications:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+### 1. **"Awaitable" Sagas (`createSagaAction` + `takeEveryAsync`)**
+*   **Use Case**: Submitting a form (Add Todo) where the UI needs to wait for the result to clear the input or show an error.
+*   **Legacy Way**: Dispatch action -> Saga listens -> Saga calls API -> Saga dispatches Success/Failure -> Component listens to store changes (Result is decoupled from dispatch).
+*   **Saga Toolkit Way**: Dispatch connection -> `await dispatch(addTodo(text)).unwrap()` -> Component acts on result immediately. The Saga still handles the side effect!
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+### 2. **Cancellable Search (`takeLatestAsync`)**
+*   **Use Case**: Type-ahead search. If the user types "A", "AB", "ABC" quickly, you only want the result for "ABC".
+*   **Feature**: When a new action comes in, `takeLatestAsync` automatically cancels the previous running Saga task.
+*   **Bridge Magic**: `saga-toolkit` ensures the *Promise* of the cancelled action is rejected with an `Aborted` error, so your component knows to ignore it.
 
-### `yarn test`
+### 3. **Blocking Composition (`putAsync`)**
+*   **Use Case**: App initialization. You want to trigger a 'Search' action from your 'Init' saga and *wait* for it to finish before logging "Init Complete".
+*   **Pattern**: `const result = yield putAsync(searchTodos('initial'))`.
+*   **Benefit**: Composes decoupled actions/sagas without tight coupling or callback hell.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 4. **Strict TypeScript Support**
+*   Full typing for Actions, State, and Sagas.
+*   No more `any` types in Sagas.
 
-### `yarn build`
+## 🛠 Project Structure
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+*   `src/slices/todoSlice.ts`: Defines the Redux slice and `createSagaAction`s. Notice how clean the reducers are (standard RTK).
+*   `src/sagas.ts`: The bridge! Sagas listen to toolkit actions. They return values that automatically resolve the dispatch promise.
+*   `src/App.tsx`: The UI. Shows how to `await dispatch(...)` and handle loading states.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 📦 Installation & Run
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1.  Current directory:
+    ```bash
+    cd example
+    ```
 
-### `yarn eject`
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+3.  Start Dev Server:
+    ```bash
+    npm run dev
+    ```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+4.  Open [http://localhost:5173](http://localhost:5173).
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## 📝 Key Code Snippets
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+**Defining an Action:**
+```typescript
+// src/slices/todoSlice.ts
+// <ReturnType, ArgumentType>
+export const addTodo = createSagaAction<Todo, string>('todo/addTodo')
+```
 
-## Learn More
+**Writing the Saga:**
+```typescript
+// src/sagas.ts
+function* addTodoSaga(action: PayloadAction<string>) {
+  // Call API
+  const newTodo = yield call(api.addTodo, action.payload)
+  // RETURN value becomes the fulfilled payload!
+  return newTodo 
+}
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+// Watcher
+yield takeEveryAsync(actions.addTodo.pending.type, addTodoSaga)
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `yarn build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+**consuming in Component:**
+```typescript
+// src/App.tsx
+const handleAdd = async () => {
+  try {
+    // We can await the saga!
+    const todo = await dispatch(addTodo(text)).unwrap()
+    console.log('Created:', todo.id)
+  } catch (err) {
+    console.error('Failed:', err)
+  }
+}
+```
