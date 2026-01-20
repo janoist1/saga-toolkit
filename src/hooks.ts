@@ -14,10 +14,33 @@ type HookResult<M extends ActionCreatorsMapObject> = {
     : M[K]
 }
 
+import { useRef } from 'react'
+
+function shallowEqual(objA: any, objB: any) {
+    if (objA === objB) return true
+    if (!objA || !objB || typeof objA !== 'object' || typeof objB !== 'object') return false
+
+    const keysA = Object.keys(objA)
+    const keysB = Object.keys(objB)
+
+    if (keysA.length !== keysB.length) return false
+
+    for (const key of keysA) {
+        if (objA[key] !== objB[key]) return false
+    }
+    return true
+}
+
 export const useSagaActions = <M extends ActionCreatorsMapObject>(actions: M): HookResult<M> => {
     const dispatch = useDispatch()
+    const actionsRef = useRef(actions)
+
+    if (!shallowEqual(actionsRef.current, actions)) {
+        actionsRef.current = actions
+    }
+
     return useMemo(() => {
-        const bound = bindActionCreators(actions, dispatch)
+        const bound = bindActionCreators(actionsRef.current, dispatch)
         const wrapped: any = {}
 
         for (const key in bound) {
@@ -31,5 +54,5 @@ export const useSagaActions = <M extends ActionCreatorsMapObject>(actions: M): H
             }
         }
         return wrapped
-    }, [actions, dispatch])
+    }, [actionsRef.current, dispatch])
 }
