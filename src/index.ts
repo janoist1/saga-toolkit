@@ -6,7 +6,6 @@ import { SagaAction } from './types'
 
 export * from './types'
 export * from './effects'
-export * from './hooks'
 
 export const createSagaAction = <Returned, ThunkArg = void>(type: string): SagaAction<Returned, ThunkArg> => {
     const thunk = createAsyncThunk<Returned, ThunkArg>(type, (_, { requestId }) => addRequest(requestId) as Promise<Returned>)
