@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, shallowEqual } from 'react-redux'
 import { bindActionCreators, ActionCreatorsMapObject } from 'redux'
 import type { AsyncThunk } from '@reduxjs/toolkit'
 
@@ -12,21 +12,6 @@ type HookResult<M extends ActionCreatorsMapObject> = {
     [K in keyof M]: M[K] extends AsyncThunk<any, any, any>
     ? BoundAsyncThunk<M[K]>
     : M[K]
-}
-
-function shallowEqual(objA: any, objB: any) {
-    if (objA === objB) return true
-    if (!objA || !objB || typeof objA !== 'object' || typeof objB !== 'object') return false
-
-    const keysA = Object.keys(objA)
-    const keysB = Object.keys(objB)
-
-    if (keysA.length !== keysB.length) return false
-
-    for (const key of keysA) {
-        if (objA[key] !== objB[key]) return false
-    }
-    return true
 }
 
 function useShallowStable<T>(value: T): T {
