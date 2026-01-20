@@ -13,12 +13,21 @@ If you love the "fire-and-forget" nature of Sagas for complex flows but miss the
 - ⚡ **Reduce Boilerplate**: Easily handle loading/success/error states in slices using standard RTK patterns.
 - 🛑 **Cancellation**: Propagates cancellation from the promise to the Saga.
 
+## 💡 Why saga-toolkit?
+
+**Modernize your Sagas.**
+The biggest criticism of Redux Saga has always been its verbosity. `saga-toolkit` cuts through the noise.
+- **Zero Boilerplate:** Forget about manually defining `_REQUEST`, `_SUCCESS`, and `_FAILURE` action types. `createSagaAction` handles the lifecycle elegantly.
+- **The "Glue" You Needed:** While libraries like React Query are great for fetching, Sagas are still unbeatable for complex background orchestration, race conditions, and heavy business logic. `saga-toolkit` is the perfect glue to connect that logic to your modern UI.
+- **Best of Both Worlds:** Keep the power of Generators but gain the ease of `await` and standard Redux Toolkit patterns.
+
 ## 🎮 Try the Example App
 
 This project includes a fully functional **Todo App** built with **Vite**, **React 18**, and **TypeScript** to demonstrate:
 *   `createSagaAction` (AsyncThunk bridge)
 *   `takeEveryAsync` (Awaitable actions)
 *   `takeLatestAsync` (Cancellable search)
+*   `takeAggregateAsync` (De-duplicated refresh)
 *   `putAsync` (Saga composition)
 
 ### Run Locally
@@ -107,26 +116,51 @@ export default function* rootSaga() {
 
 ### 3. Dispatch and Await in Component
 
-#### [Pro Tip] Use `bindActionCreators`
-To keep your component code clean and avoid passing `dispatch` everywhere, we recommend using `bindActionCreators`.
+#### Option A: The Easy Way (Recommended)
+Use the `useSagaActions` hook to automatically bind dispatch and unwrap promises.
 
 ```tsx
 /* UserComponent.tsx */
-import { useMemo } from 'react'
-import { useDispatch } from 'react-redux'
-import { bindActionCreators } from 'redux'
+import { useSagaActions } from 'saga-toolkit'
 import { fetchUser } from './slice'
 
 const UserComponent = ({ id }: { id: string }) => {
-  const dispatch = useDispatch()
-  
-  // Bind actions once
-  const actions = useMemo(() => bindActionCreators({ fetchUser }, dispatch), [dispatch])
+  // Automatically binds dispatch AND unwraps promises!
+  const actions = useSagaActions({ fetchUser })
 
   const handleFetch = async () => {
     try {
       // Clean awaitable call!
-      const user = await actions.fetchUser(id).unwrap() 
+      const user = await actions.fetchUser(id)
+      console.log('Got user:', user)
+    } catch (error) {
+      console.error('Failed to fetch:', error)
+    }
+  }
+
+  return <button onClick={handleFetch}>Load User</button>
+}
+```
+
+#### Option B: The Manual Way (Classic Redux)
+If you prefer standard Redux patterns or need to access the raw action object, you can dispatch manually.
+
+```tsx
+/* UserComponent.tsx */
+import { useDispatch } from 'react-redux'
+import { unwrapResult } from '@reduxjs/toolkit'
+import { fetchUser } from './slice'
+
+const UserComponent = ({ id }: { id: string }) => {
+  const dispatch = useDispatch()
+
+  const handleFetch = async () => {
+    try {
+      // 1. Dispatch the action
+      const resultAction = await dispatch(fetchUser(id))
+      // 2. Unwrap the result to get the payload (or throw error)
+      const user = unwrapResult(resultAction)
+      
       console.log('Got user:', user)
     } catch (error) {
       console.error('Failed to fetch:', error)

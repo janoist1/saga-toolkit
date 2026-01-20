@@ -1,35 +1,32 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { bindActionCreators } from 'redux'
-import { unwrapResult } from '@reduxjs/toolkit'
-import { useAppDispatch, useAppSelector } from './hooks'
+import React, { useState, useEffect } from 'react'
+import { useSagaActions } from 'saga-toolkit'
+import { useAppSelector } from './hooks'
 import { addTodo, searchTodos, initApp, refreshTodos } from './slices/todoSlice'
 import './App.css'
 
 function App() {
-    const dispatch = useAppDispatch()
     const { todos, loading, error } = useAppSelector(state => state.todo)
 
     const [text, setText] = useState('')
     const [simulateError, setSimulateError] = useState(false)
     const [localSearch, setLocalSearch] = useState('')
 
-    // --- PRO TIP: Using bindActionCreators ---
-    // This makes the component code cleaner as you don't need to call dispatch manually everywhere.
-    const actions = useMemo(() => bindActionCreators({
+    // --- Using useSagaActions Helper ---
+    // Automatically binds dispatch and unwraps promises!
+    const actions = useSagaActions({
         addTodo,
         searchTodos,
         initApp,
         refreshTodos
-    }, dispatch), [dispatch])
+    })
 
     // Demonstration 1: putAsync usage (App Start)
     useEffect(() => {
         // This action waits for searchTodos inside the saga!
         const init = async () => {
             try {
-                // Dispatching via bound action creator
-                // @ts-ignore - bindActionCreators result can be tricky with AsyncThunk
-                await actions.initApp().unwrap()
+                // No more dispatch or unwrap!
+                await actions.initApp()
                 console.log('App init finished (Saga waited for child saga)')
             } catch (e) {
                 console.error('Init failed', e)
@@ -44,11 +41,9 @@ function App() {
         if (!text.trim()) return
 
         try {
-            // 1. Dispatch action (via bound action)
-            const actionResult = await actions.addTodo({ text, simulateError })
-            // 2. Wait for Saga to finish and unwrap payload
-            // @ts-ignore
-            const data = unwrapResult(actionResult)
+            // 1. Dispatch action (via helper hook)
+            // No unwrap needed!
+            const data = await actions.addTodo({ text, simulateError })
 
             console.log('Todo added successfully!', data)
             setText('')
@@ -64,9 +59,13 @@ function App() {
 
         // @ts-ignore
         actions.searchTodos(val).then((result: any) => {
-            if (searchTodos.fulfilled.match(result)) {
-                console.log('Search finished:', result.payload.length)
-            }
+            // NOTE: For now, useSagaActions unwraps everything, so we get the payload directly!
+            // But be careful: if we want the full action object for specific matching, 
+            // the helper assumes we just want the result.
+            // However, with standard async thunks, .then(result) usually returns result.
+            // Our helper returns the unwrapped promise result.
+
+            console.log('Search finished:', result.length)
         }).catch((err: any) => {
             if (err.message === 'Aborted') {
                 console.log('Previous search aborted (Expected behavior)')
@@ -87,7 +86,7 @@ function App() {
 
         const results = await Promise.all([p1, p2, p3])
         // @ts-ignore
-        console.log('Aggregated results received:', results[0].payload)
+        console.log('Aggregated results received:', results[0])
     }
 
     return (
