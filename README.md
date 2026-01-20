@@ -196,6 +196,11 @@ Dispatches an action and waits for its Saga to finish.
 ### `SagaActionFromCreator<typeof actionCreator>`
 TypeScript helper to extract the correct action type for your Saga worker.
 
+### `useSagaActions(actions)`
+React hook that binds actions to dispatch and automatically unwraps the returned promise.
+- **Stable**: Uses shallow comparison on the input object to prevent infinite loops.
+- **Returns**: An object with the same keys, where each function returns `Promise<Result>` (unwrapped).
+
 ## License
 
 ISC
