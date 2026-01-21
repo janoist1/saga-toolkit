@@ -21,6 +21,8 @@ The biggest criticism of Redux Saga has always been its verbosity. `saga-toolkit
 - **The "Glue" You Needed:** While libraries like React Query are great for fetching, Sagas are still unbeatable for complex background orchestration, race conditions, and heavy business logic. `saga-toolkit` is the perfect glue to connect that logic to your modern UI.
 - **Best of Both Worlds:** Keep the power of Generators but gain the ease of `await` and standard Redux Toolkit patterns.
 
+> *"The reason I’m still sticking with Sagas in mid-to-large projects is a matter of **'architectural safety.'** With Sagas, I never have to worry about a product feature becoming so twisted (complex cancellations, racing multiple async flows, or multi-step orchestration) that the tool can't handle it. It’s that security of knowing I won’t hit a wall regardless of how 'insane' the requirements get."*
+
 ## 🎮 Try the Example App
 
 This project includes a fully functional **Todo App** built with **Vite**, **React 18**, and **TypeScript** to demonstrate:
@@ -39,7 +41,6 @@ npm run dev
 ```
 
 ### Try Online (StackBlitz)
-> Note: Requires the package to be published to npm.
 
 [![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/janoist1/saga-toolkit/tree/master/example)
 
@@ -47,8 +48,6 @@ npm run dev
 
 ```bash
 npm install saga-toolkit
-# or
-yarn add saga-toolkit
 ```
 
 *Peer Dependencies: `@reduxjs/toolkit`, `redux-saga`*
