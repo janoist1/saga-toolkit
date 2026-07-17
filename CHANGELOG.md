@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.4.0] - 2026-07-17
+### Changed
+- Extended `peerDependencies` to support **React 19** (`^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0`). Fixes ERESOLVE install errors in React 19 projects (#6).
+- Bumped `@types/react` to `^19.0.0` in `devDependencies`.
+
 ## [2.2.7] - 2026-01-17
 ### Fixed
 - **Critical Fix**: Resolved a regression where `takeLatestAsync` would hang indefinitely if the previous action's request was already cleaned up (e.g., via TTL).
