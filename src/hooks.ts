@@ -3,14 +3,17 @@ import { useDispatch, shallowEqual } from 'react-redux'
 import { bindActionCreators, ActionCreatorsMapObject } from 'redux'
 import type { AsyncThunk } from '@reduxjs/toolkit'
 
-type BoundAsyncThunk<Thunk extends AsyncThunk<any, any, any>> =
+/** Unwrapped thunk promise that still exposes the thunk's abort(). */
+export type AbortablePromise<T> = Promise<T> & { abort: (reason?: string) => void }
+
+type BoundSagaAction<Thunk extends AsyncThunk<any, any, any>> =
     Thunk extends AsyncThunk<infer Returned, infer ThunkArg, any>
-    ? (arg: ThunkArg) => Promise<Returned>
+    ? (arg: ThunkArg) => AbortablePromise<Returned>
     : never
 
 type HookResult<M extends ActionCreatorsMapObject> = {
     [K in keyof M]: M[K] extends AsyncThunk<any, any, any>
-    ? BoundAsyncThunk<M[K]>
+    ? BoundSagaAction<M[K]>
     : M[K]
 }
 
@@ -29,18 +32,26 @@ export const useSagaActions = <M extends ActionCreatorsMapObject>(actions: M): H
 
     return useMemo(() => {
         const bound = bindActionCreators(stableActions, dispatch)
-        const wrapped: any = {}
+        const wrapped: Record<string, unknown> = {}
 
         for (const key in bound) {
-            wrapped[key] = async (...args: any[]) => {
-                const res = bound[key](...args)
-                // Check if it's an AsyncThunk action with unwrap
-                if (res && typeof res === 'object' && 'unwrap' in res && typeof (res as any).unwrap === 'function') {
-                    return await (res as any).unwrap()
+            const creator = bound[key] as (...args: unknown[]) => unknown
+            wrapped[key] = (...args: unknown[]) => {
+                const result = creator(...args)
+                // AsyncThunk dispatch result: unwrap it but keep abort() reachable
+                if (result && typeof result === 'object' && 'unwrap' in result
+                    && typeof (result as { unwrap: unknown }).unwrap === 'function') {
+                    const thunkResult = result as { unwrap: () => Promise<unknown>, abort?: (reason?: string) => void }
+                    const promise = thunkResult.unwrap() as AbortablePromise<unknown>
+                    if (typeof thunkResult.abort === 'function') {
+                        promise.abort = (reason?: string) => thunkResult.abort!(reason)
+                    }
+                    return promise
                 }
-                return res
+                // Plain action creators are returned as-is (already dispatched by bindActionCreators)
+                return result
             }
         }
-        return wrapped
+        return wrapped as HookResult<M>
     }, [stableActions, dispatch])
 }

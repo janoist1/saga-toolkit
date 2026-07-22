@@ -9,7 +9,7 @@ export * from './effects'
 export * from './hooks'
 
 export const createSagaAction = <Returned, ThunkArg = void>(type: string): SagaAction<Returned, ThunkArg> => {
-    const thunk = createAsyncThunk<Returned, ThunkArg>(type, (_, { requestId }) => addRequest(requestId) as Promise<Returned>)
+    const thunk = createAsyncThunk<Returned, ThunkArg>(type, (_, { requestId, signal }) => addRequest(requestId, type, signal) as Promise<Returned>)
 
     function actionCreator(arg: ThunkArg) {
         const originalActionCreator = thunk(arg)

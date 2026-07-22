@@ -4,3 +4,6 @@
 .DS_Store
 *.log
 
+
+# build artifacts
+example/dist

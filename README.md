@@ -11,7 +11,9 @@ If you love the "fire-and-forget" nature of Sagas for complex flows but miss the
 - 🤝 **Bridge Pattern**: Connects `createAsyncThunk` (RTK) with `takeEvery` / `takeLatest` (Saga).
 - 🔄 **Promise Support**: `await` your Saga actions in React components.
 - ⚡ **Reduce Boilerplate**: Easily handle loading/success/error states in slices using standard RTK patterns.
-- 🛑 **Cancellation**: Propagates cancellation from the promise to the Saga.
+- 🛑 **Real Cancellation**: `promise.abort()` cancels the running Saga (and `takeLatestAsync` aborts superseded requests).
+- 🧭 **Type-safe**: pass the action creator itself to the effects — action and return types are inferred and enforced.
+- 🚨 **No silent hangs**: if you forget to register a watcher saga, the promise rejects with an actionable error instead of pending forever.
 
 ## 💡 Why saga-toolkit?
 
@@ -91,27 +93,29 @@ export default slice.reducer
 
 ### 2. Connect to a Saga
 
-Use `takeEveryAsync` (or `takeLatestAsync`, etc.) to listen for the action. Use the `SagaActionFromCreator` helper to type your worker sagas perfectly.
+Use `takeEveryAsync` (or `takeLatestAsync`, etc.) to listen for the action. Pass the **action creator itself** — the effect listens on its `pending` type automatically, infers the action type, and even enforces that your saga returns the declared result type (`User` here):
 
 ```typescript
 /* sagas.ts */
 import { call } from 'redux-saga/effects'
-import { takeEveryAsync, SagaActionFromCreator } from 'saga-toolkit'
+import { takeEveryAsync, SagaPendingAction } from 'saga-toolkit'
 import { fetchUser } from './slice'
 
-// helper for clean typing
-function* fetchUserSaga(action: SagaActionFromCreator<typeof fetchUser>) {
-  const userId = action.meta.arg
-  
-  // The return value here resolves the promise!
-  const user = yield call(API.getUser, userId)
-  return user 
+function* fetchUserSaga(action: SagaPendingAction<typeof fetchUser>) {
+  const userId = action.meta.arg // typed as string
+
+  // The return value here resolves the promise —
+  // and must be a User, or TypeScript will complain!
+  const user: User = yield call(API.getUser, userId)
+  return user
 }
 
 export default function* rootSaga() {
-  yield takeEveryAsync(fetchUser.pending.type, fetchUserSaga)
+  yield takeEveryAsync(fetchUser, fetchUserSaga)
 }
 ```
+
+> Prefer classic patterns? `takeEveryAsync(fetchUser.pending.type, fetchUserSaga)` still works exactly as before.
 
 ### 3. Dispatch and Await in Component
 
@@ -175,30 +179,34 @@ const UserComponent = ({ id }: { id: string }) => {
 ### `createSagaAction<Returned, ThunkArg>(typePrefix)`
 Creates a Redux Toolkit Async Thunk bridge.
 - **Returns**: An enhanced thunk action creator.
+- If no saga picks the action up within 30 seconds, the promise **rejects** with an error telling you which watcher registration is missing (no silent hangs).
 
-### `takeEveryAsync(pattern, saga, ...args)`
+### `takeEveryAsync(patternOrCreator, saga, ...args)`
 Spawns a `saga` on each action.
 - Automatically resolves/rejects the promise associated with the action.
+- Pass the **action creator** (`takeEveryAsync(fetchUser, saga)`) for full type inference, or a classic pattern/string.
+- Calling `promise.abort()` on the dispatched action **cancels the running saga**.
 
-### `takeLatestAsync(pattern, saga, ...args)`
+### `takeLatestAsync(patternOrCreator, saga, ...args)`
 Same as `takeEveryAsync`, but cancels previous running task on new actions.
-- Propagates cancellation to the saga and rejets the promise with "Aborted".
+- Propagates cancellation to the saga and rejects the promise with "Aborted".
 
-### `takeAggregateAsync(pattern, saga, ...args)`
-Wait for the saga to finish. Subsequent identical actions dispatched while it's running will all share the **same promise result**.
+### `takeAggregateAsync(patternOrCreator, saga, ...args)`
+Wait for the saga to finish. Identical actions (same `meta.arg`, compared structurally) dispatched while it's running share the **same promise result**; actions with different args run independently.
 - Perfect for de-duplicating rapid "Refresh" calls.
 
 ### `putAsync(action)`
 Dispatches an action and waits for its Saga to finish.
 - `const result = yield putAsync(otherAction())`
+- Typed: `const result = yield* putAsync(otherAction())` infers the result type.
 
-### `SagaActionFromCreator<typeof actionCreator>`
-TypeScript helper to extract the correct action type for your Saga worker.
+### `SagaPendingAction<typeof actionCreator>`
+TypeScript helper: the pending action your worker saga receives (typed `meta.arg` included). `SagaActionFromCreator` is kept for backwards compatibility.
 
 ### `useSagaActions(actions)`
 React hook that binds actions to dispatch and automatically unwraps the returned promise.
 - **Stable**: Uses shallow comparison on the input object to prevent infinite loops.
-- **Returns**: An object with the same keys, where each function returns `Promise<Result>` (unwrapped).
+- **Returns**: An object with the same keys, where each thunk returns `Promise<Result>` (unwrapped) that also exposes **`.abort()`** for cancellation; plain action creators are passed through unchanged.
 
 ## License
 
