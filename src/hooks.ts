@@ -6,10 +6,13 @@ import type { AsyncThunk } from '@reduxjs/toolkit'
 /** Unwrapped thunk promise that still exposes the thunk's abort(). */
 export type AbortablePromise<T> = Promise<T> & { abort: (reason?: string) => void }
 
+// Returned/ThunkArg are read structurally off the fulfilled/pending action creators instead of
+// `Thunk extends AsyncThunk<infer R, infer A, any>` — the infer pattern breaks under RTK 2's types
+type ThunkReturned<Thunk extends AsyncThunk<any, any, any>> = ReturnType<Thunk['fulfilled']>['payload']
+type ThunkArgOf<Thunk extends AsyncThunk<any, any, any>> = ReturnType<Thunk['pending']>['meta']['arg']
+
 type BoundSagaAction<Thunk extends AsyncThunk<any, any, any>> =
-    Thunk extends AsyncThunk<infer Returned, infer ThunkArg, any>
-    ? (arg: ThunkArg) => AbortablePromise<Returned>
-    : never
+    (arg: ThunkArgOf<Thunk>) => AbortablePromise<ThunkReturned<Thunk>>
 
 type HookResult<M extends ActionCreatorsMapObject> = {
     [K in keyof M]: M[K] extends AsyncThunk<any, any, any>

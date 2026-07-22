@@ -120,4 +120,24 @@ describe('useSagaActions', () => {
 
         expect(result.current).toBe(first)
     })
+
+    it('re-binds when the actions content actually changes', () => {
+        const fetchA = createSagaAction<string>('hook/rebindA')
+        const fetchB = createSagaAction<string>('hook/rebindB')
+
+        function* rootSaga() { /* nothing to watch */ }
+
+        const { wrapper } = setup(rootSaga)
+        const { result, rerender } = renderHook(
+            ({ actions }: { actions: { fetch: typeof fetchA } }) => useSagaActions(actions),
+            { wrapper, initialProps: { actions: { fetch: fetchA } } },
+        )
+
+        const first = result.current
+
+        rerender({ actions: { fetch: fetchB } })
+
+        expect(result.current).not.toBe(first)
+        expect(typeof result.current.fetch).toBe('function')
+    })
 })

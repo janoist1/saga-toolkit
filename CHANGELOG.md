@@ -19,6 +19,7 @@
 - `takeLatestAsync`: superseding a request in the same tick no longer leaks its internal registry entry (and watchdog timer) permanently — the worker's cleanup now also covers cancellation while it is still waiting for request registration.
 - `useSagaActions`: plain (non-thunk) action creators are returned as-is instead of being wrapped in a promise (their declared types were already claiming this).
 - TTL watchdog timers are cleared as soon as a request completes, and `unref`ed in Node.js so they don't keep SSR/test processes alive.
+- `useSagaActions` types resolved to `never` under **Redux Toolkit 2** (the `AsyncThunk<infer R, infer A, any>` pattern breaks with RTK 2's types — broken since 2.3.x): `Returned`/`ThunkArg` are now read structurally off the `fulfilled`/`pending` creators, verified against both RTK 1 and RTK 2.
 
 ### Changed
 - Packaging: added `sideEffects: false` (tree-shaking); ESM consumers now get `index.d.mts` through a properly split `exports` → `types` condition; added the `./package.json` export.

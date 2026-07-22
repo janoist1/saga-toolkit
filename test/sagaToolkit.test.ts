@@ -285,6 +285,51 @@ describe('saga-toolkit', () => {
         expect(calls).toBe(1)
     })
 
+    it('takeAggregateAsync: args without safe identity (bigint) opt out of dedup', async () => {
+        const action = createSagaAction<string, bigint>('test/aggregateBigint')
+        let calls = 0
+
+        function* saga(action: { type: string, meta: { arg: bigint } }) {
+            calls++
+            yield delay(50)
+            return `Result ${action.meta.arg}`
+        }
+
+        function* rootSaga() {
+            yield takeAggregateAsync(action.pending.type, saga)
+        }
+
+        const store = createStoreLoose(rootSaga)
+
+        const p1 = store.dispatch(action(1n))
+        const p2 = store.dispatch(action(1n))
+
+        const [r1, r2] = await Promise.all([p1.unwrap(), p2.unwrap()])
+
+        expect(r1).toBe('Result 1')
+        expect(r2).toBe('Result 1')
+        expect(calls).toBe(2) // no dedup — each dispatch ran its own saga
+        expect(_getInternalState().size).toBe(0)
+    })
+
+    it('takeAggregateAsync also runs workers for plain (non-saga) actions', async () => {
+        let seen: string | null = null
+
+        function* saga(act: { type: string }) {
+            seen = act.type
+        }
+
+        function* rootSaga() {
+            yield takeAggregateAsync('plain/aggregate', saga)
+        }
+
+        const store = createStore(rootSaga)
+        store.dispatch({ type: 'plain/aggregate' })
+
+        expect(seen).toBe('plain/aggregate')
+        expect(_getInternalState().size).toBe(0)
+    })
+
     describe('Cancellation', () => {
         beforeEach(() => {
             vi.useFakeTimers()
@@ -292,6 +337,33 @@ describe('saga-toolkit', () => {
 
         afterEach(() => {
             vi.useRealTimers()
+        })
+
+        it('abort() before the saga starts prevents it from running at all', async () => {
+            const action = createSagaAction('test/abortEarly')
+            let calls = 0
+
+            function* saga() {
+                calls++
+                yield delay(100)
+                return 'done'
+            }
+
+            function* rootSaga() {
+                yield takeEveryAsync(action.pending.type, saga)
+            }
+
+            const store = createStore(rootSaga)
+
+            const promise = store.dispatch(action())
+            promise.abort() // same tick — the worker hasn't picked the request up yet
+
+            await expect(promise.unwrap()).rejects.toMatchObject({ name: 'AbortError' })
+            await vi.advanceTimersByTimeAsync(10)
+
+            expect(calls).toBe(0)
+            expect(_getInternalState().size).toBe(0)
+            expect(vi.getTimerCount()).toBe(0)
         })
 
         it('aborting the dispatched promise cancels the running saga', async () => {
